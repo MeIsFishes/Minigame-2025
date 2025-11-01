@@ -30,6 +30,141 @@ body {
     text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
 }
 
+/* 玩家血量UI */
+#player-health-container {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    z-index: 10;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    color: #fff;
+    font-size: 20px;
+    font-weight: bold;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+#player-health-label {
+    font-size: 20px;
+}
+
+#player-health-display {
+    display: flex;
+    gap: 15px;
+}
+
+.player-heart {
+    width: 22px;
+    height: 20px;
+    position: relative;
+    transition: all 0.2s ease;
+    background: #ff0000;
+    transform: rotate(45deg);
+    border-radius: 3px 3px 0 0;
+}
+
+.player-heart::before,
+.player-heart::after {
+    content: '';
+    position: absolute;
+    width: 22px;
+    height: 20px;
+    background: #ff0000;
+    border-radius: 50%;
+}
+
+.player-heart::before {
+    left: -11px;
+    top: 0;
+}
+
+.player-heart::after {
+    left: 0;
+    top: -11px;
+}
+
+.player-heart.full {
+    opacity: 1;
+    background: #ff3366;
+    box-shadow: 0 0 6px rgba(255, 51, 102, 0.8);
+}
+
+.player-heart.full::before,
+.player-heart.full::after {
+    background: #ff3366;
+    box-shadow: 0 0 6px rgba(255, 51, 102, 0.8);
+}
+
+.player-heart.empty {
+    opacity: 0.3;
+    background: #666;
+}
+
+.player-heart.empty::before,
+.player-heart.empty::after {
+    background: #666;
+}
+
+/* 游戏结束UI */
+#game-over {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.game-over-content {
+    text-align: center;
+    background: rgba(20, 20, 20, 0.95);
+    padding: 40px;
+    border-radius: 15px;
+    border: 2px solid #fff;
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+}
+
+.game-over-content h2 {
+    font-size: 48px;
+    margin-bottom: 20px;
+    color: #ff3366;
+    text-shadow: 0 0 10px rgba(255, 51, 102, 0.8);
+}
+
+.game-over-content p {
+    font-size: 24px;
+    margin-bottom: 30px;
+    color: #fff;
+}
+
+#restart-button {
+    padding: 15px 40px;
+    font-size: 20px;
+    font-weight: bold;
+    background: linear-gradient(135deg, #ff3366, #cc0033);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 15px rgba(255, 51, 102, 0.5);
+}
+
+#restart-button:hover {
+    background: linear-gradient(135deg, #ff6699, #ff3366);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(255, 51, 102, 0.7);
+}
+
+#restart-button:active {
+    transform: translateY(0);
+}
+
 #game-area {
     position: absolute;
     top: 0;
@@ -55,30 +190,60 @@ body {
 /* 敌机样式 */
 .enemy {
     position: absolute;
-    width: 50px;
-    height: 40px;
+    width: 120px;
+    height: 60px;
     transition: none;
     z-index: 2;
 }
 
-/* 敌机主体 - 机身 */
-.enemy::before {
+/* 敌机血条样式 */
+.enemy-health-bar-container {
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    height: 4px;
+    z-index: 10;
+}
+
+.enemy-health-bar-bg {
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+    overflow: hidden;
+    box-shadow: 0 0 3px rgba(0, 0, 0, 0.5);
+}
+
+.enemy-health-bar-fill {
+    height: 100%;
+    width: 100%;
+    background: #00ff00;
+    transition: width 0.2s ease-out, background-color 0.2s ease-out;
+    box-shadow: 0 0 3px rgba(0, 255, 0, 0.6);
+}
+
+/* ============================================
+   普通敌机样式（enemy）- 标准红色战斗机
+   ============================================ */
+/* 长条机身 */
+.enemy.enemy::before {
     content: '';
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    width: 32px;
-    height: 20px;
-    background: linear-gradient(135deg, #ff5555, #cc0000, #aa0000);
-    clip-path: polygon(0% 50%, 15% 10%, 35% 0%, 65% 0%, 85% 10%, 100% 50%, 85% 90%, 65% 100%, 35% 100%, 15% 90%);
-    box-shadow: 
-        0 0 8px rgba(255, 68, 68, 0.6),
-        inset 0 2px 4px rgba(255, 150, 150, 0.3);
+    width: 72px;
+    height: 12px;
+    background: linear-gradient(90deg, #ff5555, #ff6666, #ff5555);
+    border-radius: 6px;
+    box-shadow: 0 0 8px rgba(255, 68, 68, 0.5);
 }
 
-/* 敌机机头 - 使用伪元素 */
-.enemy::after {
+/* 三角形机头 */
+.enemy.enemy::after {
     content: '';
     position: absolute;
     top: 50%;
@@ -88,62 +253,338 @@ body {
     border-style: solid;
 }
 
-/* 向左飞的飞机（面朝左） */
-.enemy.facing-left::after {
-    left: 2px;
-    border-width: 7px 14px 7px 0;
-    border-color: transparent #ff7777 transparent transparent;
-    filter: drop-shadow(2px 0 3px rgba(255, 100, 100, 0.5));
+.enemy.enemy.facing-left::after {
+    left: 0px;
+    border-width: 9px 18px 9px 0;
+    border-color: transparent #ff5555 transparent transparent;
+    filter: drop-shadow(2px 0 3px rgba(255, 85, 85, 0.8));
 }
 
-/* 向右飞的飞机（面朝右） */
-.enemy.facing-right::after {
-    right: 2px;
-    border-width: 7px 0 7px 14px;
-    border-color: transparent transparent transparent #ff7777;
-    filter: drop-shadow(-2px 0 3px rgba(255, 100, 100, 0.5));
+.enemy.enemy.facing-right::after {
+    right: 0px;
+    border-width: 9px 0 9px 18px;
+    border-color: transparent transparent transparent #ff5555;
+    filter: drop-shadow(-2px 0 3px rgba(255, 85, 85, 0.8));
 }
 
-/* 飞机尾翼 */
-.enemy .wing {
+/* 上方机翼 */
+.enemy.enemy .wing-top {
+    position: absolute;
+    top: 20%;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.enemy.enemy.facing-left .wing-top {
+    left: 20%;
+    border-width: 0 18px 9px 0;
+    border-color: transparent #ff6666 transparent transparent;
+    filter: drop-shadow(2px 2px 3px rgba(255, 102, 102, 0.6));
+}
+
+.enemy.enemy.facing-right .wing-top {
+    right: 20%;
+    border-width: 0 0 9px 18px;
+    border-color: transparent transparent transparent #ff6666;
+    filter: drop-shadow(-2px 2px 3px rgba(255, 102, 102, 0.6));
+}
+
+/* 下方机翼 */
+.enemy.enemy .wing-bottom {
+    position: absolute;
+    bottom: 20%;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.enemy.enemy.facing-left .wing-bottom {
+    left: 20%;
+    border-width: 9px 18px 0 0;
+    border-color: #ff6666 transparent transparent transparent;
+    filter: drop-shadow(2px -2px 3px rgba(255, 102, 102, 0.6));
+}
+
+.enemy.enemy.facing-right .wing-bottom {
+    right: 20%;
+    border-width: 9px 0 0 18px;
+    border-color: transparent transparent transparent #ff6666;
+    filter: drop-shadow(-2px -2px 3px rgba(255, 102, 102, 0.6));
+}
+
+/* ============================================
+   快速敌机样式（enemy-fast）- 蓝色变体
+   ============================================ */
+.enemy.enemy-fast {
+    width: 90px;
+    height: 45px;
+}
+
+/* 长条机身 */
+.enemy.enemy-fast::before {
+    content: '';
     position: absolute;
     top: 50%;
-    width: 12px;
-    height: 6px;
-    background: linear-gradient(135deg, #ff6666, #bb0000);
-    clip-path: polygon(0% 50%, 50% 0%, 100% 50%, 50% 100%);
-    box-shadow: 0 0 4px rgba(255, 68, 68, 0.4);
-}
-
-.enemy.facing-left .wing {
-    right: 2px;
-    transform: translateY(-50%) rotate(45deg);
-}
-
-.enemy.facing-right .wing {
-    left: 2px;
-    transform: translateY(-50%) rotate(-45deg);
-}
-
-/* 添加机翼装饰 */
-.enemy .wing-top,
-.enemy .wing-bottom {
-    position: absolute;
     left: 50%;
-    transform: translateX(-50%);
-    width: 18px;
-    height: 4px;
-    background: linear-gradient(90deg, transparent, #ff6666, transparent);
-    border-radius: 2px;
-    opacity: 0.7;
+    transform: translate(-50%, -50%);
+    width: 68px;
+    height: 12px;
+    background: linear-gradient(90deg, #00aaff, #55ccff, #00aaff);
+    border-radius: 6px;
+    box-shadow: 0 0 8px rgba(0, 170, 255, 0.5);
 }
 
-.enemy .wing-top {
+/* 三角形机头 */
+.enemy.enemy-fast::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.enemy.enemy-fast.facing-left::after {
+    left: 0px;
+    border-width: 9px 18px 9px 0;
+    border-color: transparent #00aaff transparent transparent;
+    filter: drop-shadow(2px 0 3px rgba(0, 170, 255, 0.8));
+}
+
+.enemy.enemy-fast.facing-right::after {
+    right: 0px;
+    border-width: 9px 0 9px 18px;
+    border-color: transparent transparent transparent #00aaff;
+    filter: drop-shadow(-2px 0 3px rgba(0, 170, 255, 0.8));
+}
+
+/* 上方机翼 */
+.enemy.enemy-fast .wing-top {
+    position: absolute;
+    top: 20%;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.enemy.enemy-fast.facing-left .wing-top {
+    left: 20%;
+    border-width: 0 18px 9px 0;
+    border-color: transparent #55ccff transparent transparent;
+    filter: drop-shadow(2px 2px 3px rgba(85, 204, 255, 0.6));
+}
+
+.enemy.enemy-fast.facing-right .wing-top {
+    right: 20%;
+    border-width: 0 0 9px 18px;
+    border-color: transparent transparent transparent #55ccff;
+    filter: drop-shadow(-2px 2px 3px rgba(85, 204, 255, 0.6));
+}
+
+/* 下方机翼 */
+.enemy.enemy-fast .wing-bottom {
+    position: absolute;
+    bottom: 20%;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.enemy.enemy-fast.facing-left .wing-bottom {
+    left: 20%;
+    border-width: 9px 18px 0 0;
+    border-color: #55ccff transparent transparent transparent;
+    filter: drop-shadow(2px -2px 3px rgba(85, 204, 255, 0.6));
+}
+
+.enemy.enemy-fast.facing-right .wing-bottom {
+    right: 20%;
+    border-width: 9px 0 0 18px;
+    border-color: transparent transparent transparent #55ccff;
+    filter: drop-shadow(-2px -2px 3px rgba(85, 204, 255, 0.6));
+}
+
+/* ============================================
+   重型敌机样式（enemy-heavy）- 紫色变体
+   ============================================ */
+.enemy.enemy-heavy {
+    width: 150px;
+    height: 90px;
+}
+
+/* 长条机身 */
+.enemy.enemy-heavy::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 104px;
+    height: 16px;
+    background: linear-gradient(90deg, #aa44ff, #cc88ff, #aa44ff);
+    border-radius: 8px;
+    box-shadow: 0 0 12px rgba(170, 68, 255, 0.6);
+}
+
+/* 三角形机头 */
+.enemy.enemy-heavy::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.enemy.enemy-heavy.facing-left::after {
+    left: 0px;
+    border-width: 11px 22px 11px 0;
+    border-color: transparent #aa44ff transparent transparent;
+    filter: drop-shadow(2px 0 4px rgba(170, 68, 255, 0.8));
+}
+
+.enemy.enemy-heavy.facing-right::after {
+    right: 0px;
+    border-width: 11px 0 11px 22px;
+    border-color: transparent transparent transparent #aa44ff;
+    filter: drop-shadow(-2px 0 4px rgba(170, 68, 255, 0.8));
+}
+
+/* 上方机翼 */
+.enemy.enemy-heavy .wing-top {
+    position: absolute;
     top: 15%;
+    width: 0;
+    height: 0;
+    border-style: solid;
 }
 
-.enemy .wing-bottom {
+.enemy.enemy-heavy.facing-left .wing-top {
+    left: 25%;
+    border-width: 0 24px 13px 0;
+    border-color: transparent #cc88ff transparent transparent;
+    filter: drop-shadow(2px 2px 4px rgba(204, 136, 255, 0.6));
+}
+
+.enemy.enemy-heavy.facing-right .wing-top {
+    right: 25%;
+    border-width: 0 0 13px 24px;
+    border-color: transparent transparent transparent #cc88ff;
+    filter: drop-shadow(-2px 2px 4px rgba(204, 136, 255, 0.6));
+}
+
+/* 下方机翼 */
+.enemy.enemy-heavy .wing-bottom {
+    position: absolute;
     bottom: 15%;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.enemy.enemy-heavy.facing-left .wing-bottom {
+    left: 25%;
+    border-width: 13px 24px 0 0;
+    border-color: #cc88ff transparent transparent transparent;
+    filter: drop-shadow(2px -2px 4px rgba(204, 136, 255, 0.6));
+}
+
+.enemy.enemy-heavy.facing-right .wing-bottom {
+    right: 25%;
+    border-width: 13px 0 0 24px;
+    border-color: transparent transparent transparent #cc88ff;
+    filter: drop-shadow(-2px -2px 4px rgba(204, 136, 255, 0.6));
+}
+
+/* ============================================
+   医疗敌机样式（enemy-heal）- 绿色医疗飞机
+   ============================================ */
+/* 长条机身 */
+.enemy.enemy-heal::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90px;
+    height: 12px;
+    background: linear-gradient(90deg, #00aa00, #55cc55, #00aa00);
+    border-radius: 6px;
+    box-shadow: 0 0 8px rgba(0, 170, 0, 0.5);
+}
+
+/* 三角形机头 */
+.enemy.enemy-heal::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.enemy.enemy-heal.facing-left::after {
+    left: 0px;
+    border-width: 9px 18px 9px 0;
+    border-color: transparent #00aa00 transparent transparent;
+    filter: drop-shadow(2px 0 3px rgba(0, 170, 0, 0.8));
+}
+
+.enemy.enemy-heal.facing-right::after {
+    right: 0px;
+    border-width: 9px 0 9px 18px;
+    border-color: transparent transparent transparent #00aa00;
+    filter: drop-shadow(-2px 0 3px rgba(0, 170, 0, 0.8));
+}
+
+/* 上方机翼 */
+.enemy.enemy-heal .wing-top {
+    position: absolute;
+    top: 20%;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.enemy.enemy-heal.facing-left .wing-top {
+    left: 20%;
+    border-width: 0 18px 9px 0;
+    border-color: transparent #55cc55 transparent transparent;
+    filter: drop-shadow(2px 2px 3px rgba(85, 204, 85, 0.6));
+}
+
+.enemy.enemy-heal.facing-right .wing-top {
+    right: 20%;
+    border-width: 0 0 9px 18px;
+    border-color: transparent transparent transparent #55cc55;
+    filter: drop-shadow(-2px 2px 3px rgba(85, 204, 85, 0.6));
+}
+
+/* 下方机翼 */
+.enemy.enemy-heal .wing-bottom {
+    position: absolute;
+    bottom: 20%;
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+.enemy.enemy-heal.facing-left .wing-bottom {
+    left: 20%;
+    border-width: 9px 18px 0 0;
+    border-color: #55cc55 transparent transparent transparent;
+    filter: drop-shadow(2px -2px 3px rgba(85, 204, 85, 0.6));
+}
+
+.enemy.enemy-heal.facing-right .wing-bottom {
+    right: 20%;
+    border-width: 9px 0 0 18px;
+    border-color: transparent transparent transparent #55cc55;
+    filter: drop-shadow(-2px -2px 3px rgba(85, 204, 85, 0.6));
 }
 
 /* 子弹样式 */
@@ -198,7 +639,7 @@ body {
 }
 
 .key {
-    background: rgba(100, 100, 100, 0.7);
+    background: var(--weapon-color, rgba(100, 100, 100, 0.7));
     border: 2px solid rgba(150, 150, 150, 0.8);
     border-radius: 8px;
     display: flex;
@@ -215,24 +656,27 @@ body {
     overflow: hidden;
     pointer-events: auto; /* 按键本身可以点击 */
     backdrop-filter: blur(2px);
+    opacity: 0.8;
 }
 
 .key:hover {
-    background: linear-gradient(135deg, #555, #333);
+    background: linear-gradient(135deg, var(--weapon-color, #555), rgba(0, 0, 0, 0.8));
     border-color: #888;
     transform: translateY(-1px);
+    opacity: 1;
 }
 
 .key:active {
     transform: translateY(0);
-    background: linear-gradient(135deg, #333, #111);
+    background: linear-gradient(135deg, var(--weapon-color, #333), rgba(0, 0, 0, 0.9));
 }
 
 .key.cooldown {
-    background: linear-gradient(135deg, #222, #000);
+    background: linear-gradient(135deg, var(--weapon-color, #222), rgba(0, 0, 0, 0.8));
     border-color: #444;
     color: #666;
     cursor: not-allowed;
+    opacity: 0.6;
 }
 
 .key.cooldown::after {
@@ -241,7 +685,7 @@ body {
     bottom: 0;
     left: 0;
     height: 100%;
-    background: linear-gradient(135deg, rgba(255, 100, 100, 0.8), rgba(255, 50, 50, 0.8));
+    background: linear-gradient(135deg, var(--weapon-color-light, rgba(255, 100, 100, 0.8)), var(--weapon-color, rgba(255, 50, 50, 0.8)));
     width: 100%;
     animation: cooldown-fill var(--cooldown-duration, 8s) linear;
 }
@@ -254,5 +698,439 @@ body {
     100% {
         width: 0%;
         opacity: 0;
+    }
+}
+
+/* ============================================
+   大厅页面样式
+   ============================================ */
+#lobby-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    z-index: 1000;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+#lobby-container.visible {
+    opacity: 1;
+}
+
+#lobby-container.hidden {
+    opacity: 0;
+}
+
+.lobby-content {
+    text-align: center;
+    color: #fff;
+    max-width: 600px;
+    padding: 40px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 20px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+}
+
+.game-title {
+    font-size: 48px;
+    margin-bottom: 20px;
+    background: linear-gradient(45deg, #ff6b6b, #4ecdc4, #45b7d1, #96ceb4);
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    animation: gradientShift 4s ease infinite;
+    text-shadow: 0 0 30px rgba(255, 255, 255, 0.3);
+}
+
+@keyframes gradientShift {
+    0%, 100% { background-position: 0% 50%; }
+    50% { background-position: 100% 50%; }
+}
+
+.game-description {
+    margin-bottom: 30px;
+}
+
+.game-description p {
+    font-size: 18px;
+    margin: 10px 0;
+    opacity: 0.9;
+}
+
+.weapon-info {
+    margin-bottom: 30px;
+}
+
+.weapon-info h3 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #4ecdc4;
+}
+
+.weapon-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.weapon-item {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    border-radius: 10px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.weapon-keys {
+    display: block;
+    font-size: 20px;
+    font-weight: bold;
+    color: #ff6b6b;
+    margin-bottom: 5px;
+}
+
+.weapon-name {
+    display: block;
+    font-size: 16px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.weapon-desc {
+    display: block;
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.start-button {
+    background: linear-gradient(135deg, #ff6b6b, #4ecdc4);
+    color: white;
+    border: none;
+    padding: 15px 40px;
+    font-size: 24px;
+    font-weight: bold;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(255, 107, 107, 0.4);
+    margin: 30px 0;
+    min-width: 200px;
+}
+
+.start-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(255, 107, 107, 0.6);
+    background: linear-gradient(135deg, #ff5252, #26d0ce);
+}
+
+.start-button:active {
+    transform: translateY(-1px);
+}
+
+.game-tips {
+    text-align: left;
+}
+
+.game-tips h4 {
+    font-size: 20px;
+    margin-bottom: 15px;
+    color: #45b7d1;
+}
+
+.game-tips ul {
+    list-style: none;
+    padding: 0;
+}
+
+.game-tips li {
+    padding: 8px 0;
+    padding-left: 20px;
+    position: relative;
+    opacity: 0.9;
+}
+
+.game-tips li:before {
+    content: "✈️";
+    position: absolute;
+    left: 0;
+    color: #96ceb4;
+}
+
+/* 菜单按钮组 */
+.menu-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+    margin: 30px 0;
+}
+
+.customize-button {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    padding: 15px 30px;
+    font-size: 20px;
+    font-weight: bold;
+    border-radius: 50px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+}
+
+.customize-button:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 30px rgba(102, 126, 234, 0.6);
+    background: linear-gradient(135deg, #5a67d8, #6b46c1);
+}
+
+.customize-button:active {
+    transform: translateY(-1px);
+}
+
+/* 武器选择页面 */
+.weapon-selection-page {
+    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.weapon-selection-page.active {
+    display: block;
+}
+
+.weapon-selection-content {
+    text-align: center;
+    color: #fff;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 40px 20px;
+}
+
+.weapon-selection-content h2 {
+    font-size: 36px;
+    margin-bottom: 10px;
+    color: #4ecdc4;
+}
+
+.weapon-selection-content > p {
+    font-size: 18px;
+    margin-bottom: 40px;
+    opacity: 0.9;
+}
+
+.error-message {
+    background: linear-gradient(135deg, #ff4757, #ff3838);
+    color: white;
+    padding: 12px 20px;
+    border-radius: 8px;
+    margin: 10px 0 20px 0;
+    font-size: 16px;
+    font-weight: bold;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-shadow: 0 4px 12px rgba(255, 71, 87, 0.4);
+    animation: errorShake 0.5s ease-in-out;
+}
+
+@keyframes errorShake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-5px); }
+    75% { transform: translateX(5px); }
+}
+
+.weapon-selection-scrollable {
+    max-height: 60vh;
+    overflow-y: auto;
+    margin-bottom: 40px;
+    padding: 0 10px;
+}
+
+.weapon-selection-scrollable::-webkit-scrollbar {
+    width: 8px;
+}
+
+.weapon-selection-scrollable::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+}
+
+.weapon-selection-scrollable::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+}
+
+.weapon-selection-scrollable::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+.weapon-rows {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.weapon-row {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 15px;
+    padding: 25px;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.weapon-row h3 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: #45b7d1;
+}
+
+.weapon-options {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 15px;
+}
+
+.weapon-option {
+    background: rgba(255, 255, 255, 0.1);
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 10px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.weapon-option:hover {
+    background: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
+    transform: translateY(-2px);
+}
+
+.weapon-option.selected {
+    background: rgba(78, 205, 196, 0.2);
+    border-color: #4ecdc4;
+    box-shadow: 0 0 20px rgba(78, 205, 196, 0.4);
+}
+
+.weapon-color {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.5);
+    flex-shrink: 0;
+}
+
+.weapon-option.selected .weapon-color {
+    border-color: #4ecdc4;
+    box-shadow: 0 0 10px rgba(78, 205, 196, 0.6);
+}
+
+.weapon-info {
+    text-align: left;
+    flex: 1;
+}
+
+.weapon-name {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.weapon-stats {
+    font-size: 14px;
+    opacity: 0.8;
+}
+
+.selection-buttons {
+    display: flex;
+    gap: 20px;
+    justify-content: center;
+}
+
+.back-button {
+    background: linear-gradient(135deg, #ff6b6b, #ee5a24);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 15px rgba(255, 107, 107, 0.4);
+}
+
+.back-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(255, 107, 107, 0.6);
+    background: linear-gradient(135deg, #ff5252, #d84315);
+}
+
+.confirm-button {
+    background: linear-gradient(135deg, #4ecdc4, #44a08d);
+    color: white;
+    border: none;
+    padding: 12px 30px;
+    font-size: 18px;
+    font-weight: bold;
+    border-radius: 25px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 0 6px 15px rgba(78, 205, 196, 0.4);
+}
+
+.confirm-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(78, 205, 196, 0.6);
+    background: linear-gradient(135deg, #26d0ce, #2e8b57);
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .lobby-content {
+        padding: 20px;
+        margin: 20px;
+    }
+
+    .game-title {
+        font-size: 36px;
+    }
+
+    .weapon-list, .weapon-options {
+        grid-template-columns: 1fr;
+    }
+
+    .menu-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .selection-buttons {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .start-button, .customize-button, .back-button, .confirm-button {
+        font-size: 16px;
+        padding: 10px 25px;
+    }
+
+    .weapon-selection-content {
+        padding: 20px 10px;
+    }
+
+    .weapon-row {
+        padding: 20px;
     }
 }

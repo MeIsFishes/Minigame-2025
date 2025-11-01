@@ -28,27 +28,39 @@
             <div class="key" data-key="o" style="grid-column: 9; grid-row: 1;">O</div>
             <div class="key" data-key="p" style="grid-column: 10; grid-row: 1;">P</div>
 
-            <!-- 第二行 -->
-            <div class="key" data-key="a" style="grid-column: 1; grid-row: 2;">A</div>
-            <div class="key" data-key="s" style="grid-column: 2; grid-row: 2;">S</div>
-            <div class="key" data-key="d" style="grid-column: 3; grid-row: 2;">D</div>
-            <div class="key" data-key="f" style="grid-column: 4; grid-row: 2;">F</div>
-            <div class="key" data-key="g" style="grid-column: 5; grid-row: 2;">G</div>
-            <div class="key" data-key="h" style="grid-column: 6; grid-row: 2;">H</div>
-            <div class="key" data-key="j" style="grid-column: 7; grid-row: 2;">J</div>
-            <div class="key" data-key="k" style="grid-column: 8; grid-row: 2;">K</div>
-            <div class="key" data-key="l" style="grid-column: 9; grid-row: 2;">L</div>
+            <!-- 第二行（向右偏移0.5个键位位置） -->
+            <div class="key" data-key="a" style="grid-column: 1; grid-row: 2; transform: translateX(50%);">A</div>
+            <div class="key" data-key="s" style="grid-column: 2; grid-row: 2; transform: translateX(50%);">S</div>
+            <div class="key" data-key="d" style="grid-column: 3; grid-row: 2; transform: translateX(50%);">D</div>
+            <div class="key" data-key="f" style="grid-column: 4; grid-row: 2; transform: translateX(50%);">F</div>
+            <div class="key" data-key="g" style="grid-column: 5; grid-row: 2; transform: translateX(50%);">G</div>
+            <div class="key" data-key="h" style="grid-column: 6; grid-row: 2; transform: translateX(50%);">H</div>
+            <div class="key" data-key="j" style="grid-column: 7; grid-row: 2; transform: translateX(50%);">J</div>
+            <div class="key" data-key="k" style="grid-column: 8; grid-row: 2; transform: translateX(50%);">K</div>
+            <div class="key" data-key="l" style="grid-column: 9; grid-row: 2; transform: translateX(50%);">L</div>
 
-            <!-- 第三行 -->
-            <div class="key" data-key="z" style="grid-column: 2; grid-row: 3;">Z</div>
-            <div class="key" data-key="x" style="grid-column: 3; grid-row: 3;">X</div>
-            <div class="key" data-key="c" style="grid-column: 4; grid-row: 3;">C</div>
-            <div class="key" data-key="v" style="grid-column: 5; grid-row: 3;">V</div>
-            <div class="key" data-key="b" style="grid-column: 6; grid-row: 3;">B</div>
-            <div class="key" data-key="n" style="grid-column: 7; grid-row: 3;">N</div>
-            <div class="key" data-key="m" style="grid-column: 8; grid-row: 3;">M</div>
+            <!-- 第三行（向右偏移1.2个键位位置） -->
+            <div class="key" data-key="z" style="grid-column: 1; grid-row: 3; transform: translateX(120%);">Z</div>
+            <div class="key" data-key="x" style="grid-column: 2; grid-row: 3; transform: translateX(120%);">X</div>
+            <div class="key" data-key="c" style="grid-column: 3; grid-row: 3; transform: translateX(120%);">C</div>
+            <div class="key" data-key="v" style="grid-column: 4; grid-row: 3; transform: translateX(120%);">V</div>
+            <div class="key" data-key="b" style="grid-column: 5; grid-row: 3; transform: translateX(120%);">B</div>
+            <div class="key" data-key="n" style="grid-column: 6; grid-row: 3; transform: translateX(120%);">N</div>
+            <div class="key" data-key="m" style="grid-column: 7; grid-row: 3; transform: translateX(120%);">M</div>
         </div>
     </div>
+    <script src="lobby.js"></script>
+    <script src="weapon.js"></script>
+    <script src="enemy.js"></script>
+    <script src="player.js"></script>
+    <script src="ui.js"></script>
     <script src="game.js"></script>
+
+    <script>
+        // 页面加载完成后启动大厅
+        window.addEventListener('DOMContentLoaded', () => {
+            LobbySystem.init();
+        });
+    </script>
 </body>
 </html>
