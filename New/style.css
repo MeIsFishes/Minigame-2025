@@ -1,0 +1,186 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: Arial, sans-serif;
+    background: #000;
+    color: white;
+    overflow: hidden;
+}
+
+#game-container {
+    width: 100vw;
+    height: 100vh;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+}
+
+#score {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 24px;
+    font-weight: bold;
+    z-index: 10;
+    color: #fff;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+}
+
+#game-area {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: linear-gradient(to bottom, #001122, #000000);
+    overflow: hidden;
+    z-index: 1;
+}
+
+#instructions {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+    font-size: 18px;
+    color: #aaa;
+    z-index: 5;
+}
+
+/* 敌机样式 */
+.enemy {
+    position: absolute;
+    width: 40px;
+    height: 30px;
+    background: #ff4444;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    transition: none;
+    z-index: 2;
+}
+
+.enemy::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: 15px;
+    width: 10px;
+    height: 10px;
+    background: #ff8888;
+    border-radius: 50%;
+}
+
+/* 子弹样式 */
+.bullet {
+    position: absolute;
+    width: 4px;
+    height: 20px;
+    background: #ffff00;
+    border-radius: 2px;
+    box-shadow: 0 0 5px #ffff00;
+    z-index: 1;
+}
+
+/* 爆炸效果 */
+.explosion {
+    position: absolute;
+    width: 60px;
+    height: 60px;
+    background: radial-gradient(circle, #ffaa00, #ff6600, transparent);
+    border-radius: 50%;
+    animation: explode 0.5s ease-out;
+    z-index: 3;
+}
+
+@keyframes explode {
+    0% {
+        transform: scale(0);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+/* 键盘UI样式 */
+#keyboard-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(0, 0, 0, 0.1);
+    display: grid;
+    grid-template-rows: 1fr 1fr 1fr;
+    grid-template-columns: repeat(10, 1fr);
+    gap: 2px;
+    padding: 5px;
+    box-sizing: border-box;
+    z-index: 5;
+    pointer-events: none; /* 让点击穿透到游戏区域 */
+}
+
+.key {
+    background: rgba(100, 100, 100, 0.7);
+    border: 2px solid rgba(150, 150, 150, 0.8);
+    border-radius: 8px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    font-family: Arial, sans-serif;
+    font-size: 18px;
+    font-weight: bold;
+    color: #fff;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    pointer-events: auto; /* 按键本身可以点击 */
+    backdrop-filter: blur(2px);
+}
+
+.key:hover {
+    background: linear-gradient(135deg, #555, #333);
+    border-color: #888;
+    transform: translateY(-1px);
+}
+
+.key:active {
+    transform: translateY(0);
+    background: linear-gradient(135deg, #333, #111);
+}
+
+.key.cooldown {
+    background: linear-gradient(135deg, #222, #000);
+    border-color: #444;
+    color: #666;
+    cursor: not-allowed;
+}
+
+.key.cooldown::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    height: 100%;
+    background: linear-gradient(135deg, rgba(255, 100, 100, 0.8), rgba(255, 50, 50, 0.8));
+    width: 100%;
+    animation: cooldown-fill 8s linear;
+}
+
+@keyframes cooldown-fill {
+    0% {
+        width: 100%;
+        opacity: 1;
+    }
+    100% {
+        width: 0%;
+        opacity: 0;
+    }
+}
