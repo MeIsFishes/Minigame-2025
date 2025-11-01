@@ -369,5 +369,11 @@ const LobbySystem = {
             // 启动游戏
             Game.init();
         }, 300);
+
+        // 初始化UI系统
+        UISystem.init();
+
+        // 开始生成敌机
+        Game.StartEnemySpawning();
     }
 };

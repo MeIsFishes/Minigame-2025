@@ -76,6 +76,7 @@ const EnemyTypes = {
 // ============================================
 const EnemySystem = {
     enemies: [],
+    nextEnemyId: 1, // 下一个敌人ID
 
     // 根据权重随机选择敌机类型
     selectEnemyType() {
@@ -135,6 +136,7 @@ const EnemySystem = {
 
         // 创建敌机对象
         const enemy = {
+            id: this.nextEnemyId++,        // 唯一ID
             x: x,
             y: clampedY,
             direction: direction,
