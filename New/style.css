@@ -55,23 +55,95 @@ body {
 /* 敌机样式 */
 .enemy {
     position: absolute;
-    width: 40px;
-    height: 30px;
-    background: #ff4444;
-    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    width: 50px;
+    height: 40px;
     transition: none;
     z-index: 2;
 }
 
+/* 敌机主体 - 机身 */
 .enemy::before {
     content: '';
     position: absolute;
-    top: -5px;
-    left: 15px;
-    width: 10px;
-    height: 10px;
-    background: #ff8888;
-    border-radius: 50%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 32px;
+    height: 20px;
+    background: linear-gradient(135deg, #ff5555, #cc0000, #aa0000);
+    clip-path: polygon(0% 50%, 15% 10%, 35% 0%, 65% 0%, 85% 10%, 100% 50%, 85% 90%, 65% 100%, 35% 100%, 15% 90%);
+    box-shadow: 
+        0 0 8px rgba(255, 68, 68, 0.6),
+        inset 0 2px 4px rgba(255, 150, 150, 0.3);
+}
+
+/* 敌机机头 - 使用伪元素 */
+.enemy::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 0;
+    height: 0;
+    border-style: solid;
+}
+
+/* 向左飞的飞机（面朝左） */
+.enemy.facing-left::after {
+    left: 2px;
+    border-width: 7px 14px 7px 0;
+    border-color: transparent #ff7777 transparent transparent;
+    filter: drop-shadow(2px 0 3px rgba(255, 100, 100, 0.5));
+}
+
+/* 向右飞的飞机（面朝右） */
+.enemy.facing-right::after {
+    right: 2px;
+    border-width: 7px 0 7px 14px;
+    border-color: transparent transparent transparent #ff7777;
+    filter: drop-shadow(-2px 0 3px rgba(255, 100, 100, 0.5));
+}
+
+/* 飞机尾翼 */
+.enemy .wing {
+    position: absolute;
+    top: 50%;
+    width: 12px;
+    height: 6px;
+    background: linear-gradient(135deg, #ff6666, #bb0000);
+    clip-path: polygon(0% 50%, 50% 0%, 100% 50%, 50% 100%);
+    box-shadow: 0 0 4px rgba(255, 68, 68, 0.4);
+}
+
+.enemy.facing-left .wing {
+    right: 2px;
+    transform: translateY(-50%) rotate(45deg);
+}
+
+.enemy.facing-right .wing {
+    left: 2px;
+    transform: translateY(-50%) rotate(-45deg);
+}
+
+/* 添加机翼装饰 */
+.enemy .wing-top,
+.enemy .wing-bottom {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 18px;
+    height: 4px;
+    background: linear-gradient(90deg, transparent, #ff6666, transparent);
+    border-radius: 2px;
+    opacity: 0.7;
+}
+
+.enemy .wing-top {
+    top: 15%;
+}
+
+.enemy .wing-bottom {
+    bottom: 15%;
 }
 
 /* 子弹样式 */
