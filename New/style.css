@@ -35,7 +35,7 @@ body {
     top: 0;
     left: 0;
     width: 100vw;
-    height: 100vh;
+    height: 75vh;
     background: linear-gradient(to bottom, #001122, #000000);
     overflow: hidden;
     z-index: 1;
@@ -110,11 +110,11 @@ body {
 /* 键盘UI样式 */
 #keyboard-ui {
     position: absolute;
-    top: 0;
+    top: 75vh;
     left: 0;
     width: 100vw;
-    height: 100vh;
-    background: rgba(0, 0, 0, 0.1);
+    height: 25vh;
+    background: rgba(0, 0, 0, 0.8);
     display: grid;
     grid-template-rows: 1fr 1fr 1fr;
     grid-template-columns: repeat(10, 1fr);
@@ -171,7 +171,7 @@ body {
     height: 100%;
     background: linear-gradient(135deg, rgba(255, 100, 100, 0.8), rgba(255, 50, 50, 0.8));
     width: 100%;
-    animation: cooldown-fill 8s linear;
+    animation: cooldown-fill var(--cooldown-duration, 8s) linear;
 }
 
 @keyframes cooldown-fill {
