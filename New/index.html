@@ -3,57 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Press Any Key</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>打飞机游戏</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div id="game-container">
-        <!-- 主菜单 -->
-        <div id="menu" class="screen active">
-            <h1>Press Any Key</h1>
-            <p>按下任意按键开始射击！</p>
-            <button id="start-btn">开始游戏</button>
-            <div class="instructions">
-                <h3>游戏说明：</h3>
-                <p>· 按A-Z键从对应位置发射子弹</p>
-                <p>· 每个键位有独立冷却时间</p>
-                <p>· 击中敌机获得10分</p>
+        <div id="score">得分: <span id="score-value">0</span></div>
+        <div id="game-area">
+            <div id="instructions">
+                按屏幕下方的键盘按键发射子弹！
+                <br>Q-P行: 速射炮 | A-L行: 机枪 | Z-M行: 霰弹
             </div>
         </div>
+        <div id="keyboard-ui">
+            <!-- 第一行 -->
+            <div class="key" data-key="q" style="grid-column: 1; grid-row: 1;">Q</div>
+            <div class="key" data-key="w" style="grid-column: 2; grid-row: 1;">W</div>
+            <div class="key" data-key="e" style="grid-column: 3; grid-row: 1;">E</div>
+            <div class="key" data-key="r" style="grid-column: 4; grid-row: 1;">R</div>
+            <div class="key" data-key="t" style="grid-column: 5; grid-row: 1;">T</div>
+            <div class="key" data-key="y" style="grid-column: 6; grid-row: 1;">Y</div>
+            <div class="key" data-key="u" style="grid-column: 7; grid-row: 1;">U</div>
+            <div class="key" data-key="i" style="grid-column: 8; grid-row: 1;">I</div>
+            <div class="key" data-key="o" style="grid-column: 9; grid-row: 1;">O</div>
+            <div class="key" data-key="p" style="grid-column: 10; grid-row: 1;">P</div>
 
-        <!-- 游戏结束界面 -->
-        <div id="game-over" class="screen">
-            <h1>游戏结束</h1>
-            <p>最终得分: <span id="final-score">0</span></p>
-            <button id="restart-btn">返回主界面</button>
-        </div>
+            <!-- 第二行（向右偏移0.5个键位位置） -->
+            <div class="key" data-key="a" style="grid-column: 1; grid-row: 2; transform: translateX(50%);">A</div>
+            <div class="key" data-key="s" style="grid-column: 2; grid-row: 2; transform: translateX(50%);">S</div>
+            <div class="key" data-key="d" style="grid-column: 3; grid-row: 2; transform: translateX(50%);">D</div>
+            <div class="key" data-key="f" style="grid-column: 4; grid-row: 2; transform: translateX(50%);">F</div>
+            <div class="key" data-key="g" style="grid-column: 5; grid-row: 2; transform: translateX(50%);">G</div>
+            <div class="key" data-key="h" style="grid-column: 6; grid-row: 2; transform: translateX(50%);">H</div>
+            <div class="key" data-key="j" style="grid-column: 7; grid-row: 2; transform: translateX(50%);">J</div>
+            <div class="key" data-key="k" style="grid-column: 8; grid-row: 2; transform: translateX(50%);">K</div>
+            <div class="key" data-key="l" style="grid-column: 9; grid-row: 2; transform: translateX(50%);">L</div>
 
-        <!-- 游戏画布 -->
-        <div id="game-screen" class="screen">
-            <canvas id="game-canvas"></canvas>
-            
-            <!-- 游戏内UI -->
-            <div id="game-ui">
-                <div id="score-display">得分: <span id="score">0</span></div>
-                <div id="keyboard-ui">
-                    <!-- 键盘UI将由JavaScript动态生成 -->
-                </div>
-            </div>
+            <!-- 第三行（向右偏移1.2个键位位置） -->
+            <div class="key" data-key="z" style="grid-column: 1; grid-row: 3; transform: translateX(120%);">Z</div>
+            <div class="key" data-key="x" style="grid-column: 2; grid-row: 3; transform: translateX(120%);">X</div>
+            <div class="key" data-key="c" style="grid-column: 3; grid-row: 3; transform: translateX(120%);">C</div>
+            <div class="key" data-key="v" style="grid-column: 4; grid-row: 3; transform: translateX(120%);">V</div>
+            <div class="key" data-key="b" style="grid-column: 5; grid-row: 3; transform: translateX(120%);">B</div>
+            <div class="key" data-key="n" style="grid-column: 6; grid-row: 3; transform: translateX(120%);">N</div>
+            <div class="key" data-key="m" style="grid-column: 7; grid-row: 3; transform: translateX(120%);">M</div>
         </div>
     </div>
-
-    <!-- JavaScript模块 -->
-    <script src="audio.js"></script>
-    <script src="sprite.js"></script>
+    <script src="lobby.js"></script>
     <script src="weapon.js"></script>
-    <script src="enemyHud.js"></script>
     <script src="enemy.js"></script>
     <script src="player.js"></script>
-    <script src="tech.js"></script>
-    <script src="effect.js"></script>
-    <script src="lobby.js"></script>
     <script src="ui.js"></script>
-    <script src="menu.js"></script>
     <script src="game.js"></script>
+
+    <script>
+        // 页面加载完成后启动大厅
+        window.addEventListener('DOMContentLoaded', () => {
+            LobbySystem.init();
+        });
+    </script>
 </body>
 </html>
