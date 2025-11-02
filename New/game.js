@@ -1,300 +1,456 @@
-// ============================================
-// 游戏常量
-// ============================================
-const GAME_WIDTH = window.innerWidth;
-const GAME_HEIGHT = window.innerHeight;
-const BULLET_SPEED = 8;
-const ENEMY_SPEED = 2;
-const BULLET_WIDTH = 4;
-const BULLET_HEIGHT = 20;
-const ENEMY_WIDTH = 75;
-const ENEMY_HEIGHT = 35;
+// game.js - 游戏主控制器：整合所有系统并控制游戏循环
 
-// ============================================
-// 碰撞检测系统
-// ============================================
-const CollisionSystem = {
-    // 检测碰撞
-    checkCollisions() {
-        for (let i = BulletSystem.bullets.length - 1; i >= 0; i--) {
-            const bullet = BulletSystem.bullets[i];
-
-            for (let j = EnemySystem.enemies.length - 1; j >= 0; j--) {
-                const enemy = EnemySystem.enemies[j];
-
-                // 检查该子弹是否已经击中过这个敌人
-                if (bullet.hitEnemies.has(enemy.id)) {
-                    continue; // 跳过已经击中过的敌人
-                }
-
-                if (this.isColliding(bullet, enemy)) {
-                    // 碰撞发生 - 记录击中并处理碰撞
-                    bullet.hitEnemies.add(enemy.id);
-                    this.handleCollision(bullet, enemy);
-
-                    // 如果是普通子弹（非穿透），立即停止检测其他敌人
-                    if (bullet.pierceCount <= 1) {
-                        break;
-                    }
-                }
-            }
-        }
-    },
-
-    // 检测两个对象是否碰撞
-    isColliding(bullet, enemy) {
-        return bullet.x < enemy.x + enemy.width &&
-               bullet.x + bullet.width > enemy.x &&
-               bullet.y < enemy.y + enemy.height &&
-               bullet.y + bullet.height > enemy.y;
-    },
-
-    // 处理碰撞
-    handleCollision(bullet, enemy) {
-        // 对敌机造成伤害
-        const isKilled = EnemySystem.takeDamage(enemy, bullet.damage);
-
-        // 如果子弹有爆炸范围，触发爆炸效果
-        if (bullet.explosionRadius > 0) {
-            this.triggerExplosion(bullet, enemy);
-            bullet.hasExploded = true; // 标记为已爆炸，避免在remove时重复爆炸
-        }
-
-        // 处理穿透逻辑
-        bullet.pierceCount--;
-
-        // 如果穿透次数用完或不是穿透炮，移除子弹
-        if (bullet.pierceCount <= 0) {
-            BulletSystem.remove(bullet);
-        } else {
-            // 穿透炮：伤害衰减，继续飞行
-            bullet.damage = Math.max(1, Math.floor(bullet.damage * 0.7));
-        }
-
-        // 如果敌机被击杀
-        if (isKilled) {
-            // 创建爆炸效果
-            EffectSystem.createExplosion(enemy.x + enemy.width/2, enemy.y + enemy.height/2);
-
-            // 更新分数
-            UISystem.addScore(bullet.damage);
-
-            // 获取敌机类型配置
-            const enemyType = EnemySystem.getEnemyType(enemy.type);
-
-            // 处理击杀回血
-            if (enemyType.killHeal > 0) {
-                PlayerSystem.heal(enemyType.killHeal);
-            }
-
-            // 处理击杀掉落升级（预留）
-            if (enemyType.killUpgrade) {
-                // TODO: 实现掉落升级逻辑
-                // UpgradeSystem.dropUpgrade(enemy.x, enemy.y, enemyType.killUpgrade);
-            }
-
-            // 移除敌机
-            EnemySystem.remove(enemy);
-        }
-    },
-
-    // 触发爆炸效果
-    triggerExplosion(bullet, hitEnemy) {
-        // 爆炸中心点（击中敌人的中心）
-        const explosionX = hitEnemy.x + hitEnemy.width / 2;
-        const explosionY = hitEnemy.y + hitEnemy.height / 2;
-        const radius = bullet.explosionRadius;
-
-        // 创建子弹爆炸视觉效果（与敌机爆炸不同）
-        EffectSystem.createBulletExplosion(explosionX, explosionY, bullet.explosionRadius, bullet.color);
-
-        // 对范围内的其他敌人造成爆炸伤害
-        for (const enemy of EnemySystem.enemies) {
-            // 跳过已经直接击中的敌人（避免重复伤害）
-            if (enemy.id === hitEnemy.id) continue;
-
-            // 检查敌人是否在爆炸范围内
-            const enemyCenterX = enemy.x + enemy.width / 2;
-            const enemyCenterY = enemy.y + enemy.height / 2;
-            const distance = Math.sqrt(
-                Math.pow(enemyCenterX - explosionX, 2) +
-                Math.pow(enemyCenterY - explosionY, 2)
-            );
-
-            if (distance <= radius) {
-                // 对范围内的敌人造成爆炸伤害
-                const isExplosionKill = EnemySystem.takeDamage(enemy, bullet.damage);
-
-                // 如果爆炸击杀了敌人
-                if (isExplosionKill) {
-                    // 更新分数（爆炸击杀也算分数）
-                    UISystem.addScore(bullet.damage);
-
-                    // 获取敌机类型配置
-                    const enemyType = EnemySystem.getEnemyType(enemy.type);
-
-                    // 处理击杀回血
-                    if (enemyType.killHeal > 0) {
-                        PlayerSystem.heal(enemyType.killHeal);
-                    }
-
-                    // 处理击杀掉落升级（预留）
-                    if (enemyType.killUpgrade) {
-                        // TODO: 实现掉落升级逻辑
-                        // UpgradeSystem.dropUpgrade(enemy.x, enemy.y, enemyType.killUpgrade);
-                    }
-
-                    // 移除敌机
-                    EnemySystem.remove(enemy);
-                }
-            }
-        }
-    }
-};
-
-// ============================================
-// 特效系统
-// ============================================
-const EffectSystem = {
-    // 创建敌机爆炸效果
-    createExplosion(x, y) {
-        const explosion = document.createElement('div');
-        explosion.className = 'explosion';
-        explosion.style.left = (x - 30) + 'px';
-        explosion.style.top = (y - 30) + 'px';
-        gameArea.appendChild(explosion);
-
-        // 动画结束后移除
-        setTimeout(() => {
-            if (explosion.parentNode) {
-                gameArea.removeChild(explosion);
-            }
-        }, 500);
-    },
-
-    // 创建子弹爆炸效果
-    createBulletExplosion(x, y, explosionRadius = 50, bulletColor = '#ffffff') {
-        const explosion = document.createElement('div');
-        explosion.className = 'bullet-explosion';
-
-        // 根据爆炸半径调整爆炸效果大小
-        const explosionSize = Math.max(30, explosionRadius * 0.8); // 最小30px，最大根据半径调整
-        explosion.style.width = explosionSize + 'px';
-        explosion.style.height = explosionSize + 'px';
-        explosion.style.left = (x - explosionSize / 2) + 'px';
-        explosion.style.top = (y - explosionSize / 2) + 'px';
-
-        // 根据子弹颜色设置爆炸颜色
-        const lighterColor = this.adjustColorBrightness(bulletColor, 0.4);
-        const darkerColor = this.adjustColorBrightness(bulletColor, -0.2);
-        explosion.style.background = `radial-gradient(circle, ${lighterColor}, ${bulletColor}, ${darkerColor}, transparent)`;
-
-        gameArea.appendChild(explosion);
-
-        // 动画结束后移除
-        setTimeout(() => {
-            if (explosion.parentNode) {
-                gameArea.removeChild(explosion);
-            }
-        }, 300); // 子弹爆炸持续时间更短
-    },
-
-    // 调整颜色亮度（辅助函数）
-    adjustColorBrightness(hex, percent) {
-        // 将hex转换为rgb
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-
-        // 调整亮度
-        const newR = Math.max(0, Math.min(255, Math.round(r * (1 + percent))));
-        const newG = Math.max(0, Math.min(255, Math.round(g * (1 + percent))));
-        const newB = Math.max(0, Math.min(255, Math.round(b * (1 + percent))));
-
-        // 转换回hex
-        return `#${newR.toString(16).padStart(2, '0')}${newG.toString(16).padStart(2, '0')}${newB.toString(16).padStart(2, '0')}`;
-    }
-};
-
-// ============================================
-// 游戏主循环
-// ============================================
-const Game = {
-    gameRunning: true,
-    animationFrame: null,
-    enemySpawnInterval: null,
-
-    // 初始化游戏
-    init() {
+class Game {
+    constructor() {
+        this.canvas = document.getElementById('game-canvas');
+        this.ctx = this.canvas.getContext('2d');
+        
+        // 设置画布大小
+        this.resizeCanvas();
+        window.addEventListener('resize', () => this.resizeCanvas());
+        
         // 初始化玩家系统
-        PlayerSystem.init();
-
-        // 初始化武器系统
-        WeaponSystem.init();
-
-        // 开始游戏循环
-        this.gameLoop();
-    },
+        this.player = new Player();
+        
+        // 初始化科技系统
+        this.techSystem = new TechSystem(this.player);
+        
+        // 初始化特效系统（先初始化，因为其他系统可能需要它）
+        this.effectSystem = new EffectSystem(this.canvas);
+        
+        // 初始化各个系统
+        this.weaponSystem = new WeaponSystem(this.canvas, this.player, this.effectSystem);
+        this.weaponSystem.setTechSystem(this.techSystem); // 设置科技系统引用
+        this.enemySystem = new EnemySystem(this.canvas, this.player); // 传入player引用用于扣血
+        this.uiSystem = new UISystem(this.weaponSystem, this.player); // 传入player引用用于显示血量
+        this.menuSystem = new MenuSystem();
+        this.lobbySystem = new LobbySystem(this.canvas);
+        
+        // 游戏状态
+        this.isRunning = false;
+        this.inLobby = true; // 是否在大厅界面
+        this.lastTime = 0;
+        this.animationFrameId = null;
+        this.lobbyFrameId = null;
+        
+        // 设置大厅回调
+        this.setupLobbyCallbacks();
+        
+        // 设置菜单回调
+        this.setupMenuCallbacks();
+        
+        // 键盘事件监听
+        this.setupKeyboardListeners();
+        
+        // 显示大厅界面
+        this.showLobby();
+    }
     
-    StartEnemySpawning() {
-        this.startEnemySpawning();
-    },
-
-    // 开始敌机生成
-    startEnemySpawning() {
-        // 清除现有的定时器（如果存在）
-        if (this.enemySpawnInterval) {
-            clearInterval(this.enemySpawnInterval);
+    // 调整画布大小
+    resizeCanvas() {
+        const container = document.getElementById('game-screen');
+        const gameUI = document.getElementById('game-ui');
+        
+        // 画布占75%高度
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight * 0.75;
+        
+        // 如果武器系统已初始化，需要更新
+        if (this.weaponSystem) {
+            this.weaponSystem.canvas = this.canvas;
+        }
+        if (this.enemySystem) {
+            this.enemySystem.canvas = this.canvas;
+        }
+        if (this.effectSystem) {
+            this.effectSystem.canvas = this.canvas;
+        }
+        if (this.lobbySystem) {
+            this.lobbySystem.canvas = this.canvas;
+            this.lobbySystem.updateButtonPositions();
+        }
+        // 更新UI键位位置
+        if (this.uiSystem) {
+            this.uiSystem.updatePositions();
+        }
+    }
+    
+    // 设置大厅回调
+    setupLobbyCallbacks() {
+        this.lobbySystem.onStartGame = () => {
+            this.hideLobby();
+            this.startGame();
+        };
+        
+        this.lobbySystem.onSettings = () => {
+            console.log('打开设置（未实现）');
+            // 可以在这里实现设置界面
+        };
+    }
+    
+    // 设置菜单回调
+    setupMenuCallbacks() {
+        this.menuSystem.setStartGameCallback(() => this.startGame());
+        // 游戏结束后不能直接重新开始，必须返回大厅
+        this.menuSystem.setRestartGameCallback(() => this.returnToMenu());
+        this.menuSystem.setReturnToMenuCallback(() => this.returnToMenu());
+    }
+    
+    // 显示大厅
+    showLobby() {
+        this.inLobby = true;
+        this.isRunning = false;
+        
+        // 取消任何正在运行的游戏循环
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
         }
         
-        // 开始生成敌机
-        this.enemySpawnInterval = setInterval(() => {
-            if (this.gameRunning) {
-                EnemySystem.createEnemy();
-            }
-        }, 2000);
-    },
-
-    // 停止敌机生成
-    stopEnemySpawning() {
-        if (this.enemySpawnInterval) {
-            clearInterval(this.enemySpawnInterval);
-            this.enemySpawnInterval = null;
-        }
-    },
-
-    // 游戏主循环
-    gameLoop() {
-        if (this.gameRunning) {
-            BulletSystem.update();
-            EnemySystem.update();
-            UISystem.updateCooldowns(); // 更新按键冷却状态
-            CollisionSystem.checkCollisions();
-
-            this.animationFrame = requestAnimationFrame(() => this.gameLoop());
+        this.lobbySystem.activate();
+        
+        // 隐藏HTML菜单和游戏UI，但保持game-screen可见（画布容器）
+        this.menuSystem.hideAll();
+        const gameScreen = document.getElementById('game-screen');
+        const gameUI = document.getElementById('game-ui');
+        
+        // 确保画布容器可见，但隐藏游戏UI
+        gameScreen.classList.add('active');
+        gameUI.style.display = 'none';
+        
+        // 重置时间戳
+        this.lastTime = Date.now();
+        
+        // 开始大厅循环
+        if (!this.lobbyFrameId) {
+            this.lobbyLoop();
         }
     }
-};
+    
+    // 隐藏大厅
+    hideLobby() {
+        this.inLobby = false;
+        
+        // 取消大厅循环
+        if (this.lobbyFrameId) {
+            cancelAnimationFrame(this.lobbyFrameId);
+            this.lobbyFrameId = null;
+        }
+        
+        this.lobbySystem.deactivate();
+        
+        // 显示游戏UI
+        document.getElementById('game-ui').style.display = 'block';
+    }
+    
+    // 大厅循环
+    lobbyLoop() {
+        if (!this.inLobby) {
+            this.lobbyFrameId = null;
+            return;
+        }
+        
+        const currentTime = Date.now();
+        const deltaTime = currentTime - this.lastTime;
+        this.lastTime = currentTime;
+        
+        // 更新大厅
+        this.lobbySystem.update(deltaTime);
+        
+        // 清空画布
+        this.ctx.fillStyle = '#000000';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 绘制大厅
+        this.lobbySystem.draw(this.ctx);
+        
+        // 继续循环
+        this.lobbyFrameId = requestAnimationFrame(() => this.lobbyLoop());
+    }
+    
+    // 设置键盘监听
+    setupKeyboardListeners() {
+        document.addEventListener('keydown', (e) => {
+            if (!this.isRunning) return;
+            
+            const key = e.key.toUpperCase();
+            
+            // 检查是否是字母键
+            if (key.length === 1 && key >= 'A' && key <= 'Z') {
+                const currentTime = Date.now();
+                const fired = this.weaponSystem.shoot(key, currentTime, this.enemySystem);
+                
+                if (fired) {
+                    this.uiSystem.highlightKey(key);
+                    this.playShootSound(key);
+                }
+            }
+        });
+    }
+    
+    // 开始游戏
+    startGame() {
+        // 重置玩家
+        this.player.reset();
+        
+        // 设置玩家受伤回调（触发全屏闪光和音效）
+        this.player.setDamageCallback((damage, currentHealth, oldHealth) => {
+            // 创建红色全屏闪光
+            this.effectSystem.createScreenFlash({
+                color: 'rgba(255, 0, 0, 0.4)',
+                duration: 150,
+                fadeOut: true
+            });
+            
+            // 播放受伤音效
+            if (typeof audioSystem !== 'undefined') {
+                audioSystem.playHitSound();
+            }
+        });
+        
+        // 重置所有系统
+        this.weaponSystem.reset();
+        this.weaponSystem.initializeWeapons(); // 重新加载玩家的武器配置
+        this.enemySystem.reset();
+        this.effectSystem.reset();
+        this.uiSystem.reset();
+        
+        // 显示血量UI
+        this.uiSystem.show();
+        
+        // 设置游戏状态
+        this.isRunning = true;
+        this.lastTime = Date.now();
+        
+        // 开始游戏循环
+        this.gameLoop();
+    }
+    
+    // 游戏循环
+    gameLoop() {
+        if (!this.isRunning) return;
+        
+        const currentTime = Date.now();
+        const deltaTime = currentTime - this.lastTime;
+        this.lastTime = currentTime;
+        
+        // 更新游戏逻辑
+        this.update(deltaTime, currentTime);
+        
+        // 渲染
+        this.render();
+        
+        // 继续循环
+        this.animationFrameId = requestAnimationFrame(() => this.gameLoop());
+    }
+    
+    // 更新游戏逻辑
+    update(deltaTime, currentTime) {
+        // 更新武器系统
+        this.weaponSystem.update(deltaTime, currentTime);
+        
+        // 更新敌机系统
+        this.enemySystem.update(deltaTime);
+        this.enemySystem.spawnEnemy(currentTime);
+        
+        // 检测碰撞
+        this.enemySystem.checkCollisions(
+            this.weaponSystem.getBullets(),
+            this.weaponSystem,
+            this.effectSystem
+        );
+        
+        // 更新特效系统
+        this.effectSystem.update(deltaTime);
+        
+        // 更新爆炸效果（旧系统，保留兼容）
+        this.enemySystem.updateExplosions();
+        
+        // 同步分数到玩家系统
+        const currentScore = this.enemySystem.getScore();
+        if (currentScore > this.player.score) {
+            const scoreDiff = currentScore - this.player.score;
+            this.player.addScore(scoreDiff);
+        }
+        
+        // 更新UI
+        this.uiSystem.update(currentTime);
+        this.uiSystem.updateScore(this.player.score);
+        
+        // 检查游戏结束（玩家血量为0）
+        if (!this.player.isAlive()) {
+            this.endGame();
+        }
+    }
+    
+    // 渲染
+    render() {
+        // 绘制深蓝色天空渐变背景
+        const gradient = this.ctx.createLinearGradient(0, 0, 0, this.canvas.height);
+        gradient.addColorStop(0, '#0a1929');
+        gradient.addColorStop(0.5, '#1a3a52');
+        gradient.addColorStop(1, '#2a4a6a');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // 绘制星空背景
+        this.drawStarfield();
+        
+        // 绘制游戏元素
+        this.weaponSystem.draw(this.ctx);
+        this.enemySystem.draw(this.ctx);
+        this.effectSystem.draw(this.ctx); // 绘制特效
+        this.enemySystem.drawExplosions(this.ctx); // 旧特效系统（保留兼容）
+    }
+    
+    // 绘制星空背景
+    drawStarfield() {
+        if (!this.stars) {
+            this.stars = [];
+            for (let i = 0; i < 100; i++) {
+                this.stars.push({
+                    x: Math.random() * this.canvas.width,
+                    y: Math.random() * this.canvas.height,
+                    size: Math.random() * 2,
+                    speed: Math.random() * 0.5 + 0.1
+                });
+            }
+        }
+        
+        // 更新和绘制星星
+        this.ctx.fillStyle = 'white';
+        this.stars.forEach(star => {
+            star.y += star.speed;
+            if (star.y > this.canvas.height) {
+                star.y = 0;
+                star.x = Math.random() * this.canvas.width;
+            }
+            
+            this.ctx.globalAlpha = Math.random() * 0.5 + 0.5;
+            this.ctx.fillRect(star.x, star.y, star.size, star.size);
+        });
+        this.ctx.globalAlpha = 1;
+    }
+    
+    // 结束游戏
+    endGame() {
+        this.isRunning = false;
+        
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+        }
+        
+        // 隐藏血量UI
+        this.uiSystem.hide();
+        
+        // 重置所有游戏系统
+        this.resetGameSystems();
+        
+        // 显示游戏结束画面，使用玩家的最终分数
+        this.menuSystem.showGameOver(this.player.score);
+        
+        this.playGameOverSound();
+    }
+    
+    // 重置所有游戏系统
+    resetGameSystems() {
+        // 重置玩家（包括血量、分数等）
+        if (this.player) {
+            this.player.reset();
+        }
+        
+        // 重置武器系统
+        if (this.weaponSystem) {
+            this.weaponSystem.reset();
+            this.weaponSystem.initializeWeapons();
+        }
+        
+        // 重置敌机系统
+        if (this.enemySystem) {
+            this.enemySystem.reset();
+        }
+        
+        // 重置特效系统
+        if (this.effectSystem) {
+            this.effectSystem.reset();
+        }
+        
+        // 重置UI系统
+        if (this.uiSystem) {
+            this.uiSystem.reset();
+        }
+    }
+    
+    // 返回主菜单
+    returnToMenu() {
+        // 停止游戏循环
+        this.isRunning = false;
+        
+        if (this.animationFrameId) {
+            cancelAnimationFrame(this.animationFrameId);
+            this.animationFrameId = null;
+        }
+        
+        // 隐藏血量UI
+        this.uiSystem.hide();
+        
+        // 显示大厅界面
+        this.showLobby();
+    }
+    
+    // 音效（简单的音频反馈）
+    playShootSound(key) {
+        // 使用Web Audio API创建简单的射击音效
+        try {
+            const weapon = this.weaponSystem.getWeapon(key);
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            // 根据武器类型调整音效
+            oscillator.frequency.value = 800;
+            oscillator.type = 'square';
+            
+            gainNode.gain.setValueAtTime(0.1, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.1);
+        } catch (e) {
+            // 浏览器不支持Web Audio API
+            console.log('Audio not supported');
+        }
+    }
+    
+    playGameOverSound() {
+        try {
+            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            const oscillator = audioContext.createOscillator();
+            const gainNode = audioContext.createGain();
+            
+            oscillator.connect(gainNode);
+            gainNode.connect(audioContext.destination);
+            
+            oscillator.frequency.value = 200;
+            oscillator.type = 'sawtooth';
+            
+            gainNode.gain.setValueAtTime(0.2, audioContext.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.5);
+            
+            oscillator.start(audioContext.currentTime);
+            oscillator.stop(audioContext.currentTime + 0.5);
+        } catch (e) {
+            console.log('Audio not supported');
+        }
+    }
+}
 
-// ============================================
-// 全局变量（用于兼容性）
-// ============================================
-let gameArea = null;
-let score = 0;
-let bullets = [];
-let enemies = [];
-
-// ============================================
-// 窗口大小改变时调整游戏尺寸
-// ============================================
-window.addEventListener('resize', () => {
-    // 可以在这里添加响应式调整逻辑
-});
-
-// ============================================
-// 启动游戏
-// ============================================
-// 等待DOM加载完成后初始化
+// 初始化游戏
+let game;
 window.addEventListener('DOMContentLoaded', () => {
-    Game.init();
+    game = new Game();
+    window.game = game; // 设置为全局变量，供其他模块访问
 });
