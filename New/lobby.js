@@ -1167,22 +1167,22 @@ class LobbySystem {
             
             // 当前属性值（如果已升级）
             if (currentLevel > 0) {
-                const currentValues = tech.getUpgradeValues(currentLevel);
+                const currentValues = tech.getTotalUpgrade(currentLevel);
                 if (currentValues) {
                     ctx.fillStyle = '#4CAF50';
-                    ctx.fillText(`当前: ${this.formatUpgradeValues(currentValues)}`, cardX + 15, cardY + 75);
+                    ctx.fillText(`当前加成: ${this.formatUpgradeValues(currentValues)}`, cardX + 15, cardY + 75);
                 }
             }
             
             // 下一级属性值和消耗
             if (!isMaxLevel) {
                 const nextLevel = currentLevel + 1;
-                const nextValues = tech.getUpgradeValues(nextLevel);
+                const nextValues = tech.getTotalUpgrade(nextLevel);
                 const cost = tech.getCost(nextLevel);
                 
                 if (nextValues) {
                     ctx.fillStyle = '#FFD700';
-                    ctx.fillText(`下一级: ${this.formatUpgradeValues(nextValues)}`, cardX + 15, cardY + 95);
+                    ctx.fillText(`下一级加成: ${this.formatUpgradeValues(nextValues)}`, cardX + 15, cardY + 95);
                 }
                 
                 if (cost) {
@@ -1592,10 +1592,20 @@ class LobbySystem {
             
             resourceInfo.forEach(resource => {
                 const name = resourceNames[resource.type] || resource.type;
-                const displayText = resource.isProbabilistic ? `${name}(概率)` : name;
+                
+                // 构建显示文本：名称 + 数量范围
+                let displayText;
+                if (resource.minAmount === resource.maxAmount) {
+                    // 固定数量
+                    displayText = `${name}:${resource.maxAmount}`;
+                } else {
+                    // 范围数量
+                    displayText = `${name}:${resource.minAmount}-${resource.maxAmount}`;
+                }
                 
                 // 资源标签背景
                 ctx.fillStyle = resourceColors[resource.type];
+                ctx.font = 'bold 14px Arial';
                 const tagWidth = ctx.measureText(displayText).width + 16;
                 const tagHeight = 24;
                 this.roundRect(ctx, resourceX, resourceY - 16, tagWidth, tagHeight, 4);
@@ -1603,7 +1613,6 @@ class LobbySystem {
                 
                 // 资源标签文字
                 ctx.fillStyle = '#FFFFFF';
-                ctx.font = 'bold 14px Arial';
                 ctx.textAlign = 'left';
                 ctx.fillText(displayText, resourceX + 8, resourceY);
                 
@@ -1636,11 +1645,16 @@ class LobbySystem {
         const resources = [];
         const fixedTypes = new Set();
         
-        // 收集固定掉落的资源类型
+        // 收集固定掉落的资源类型（带数量）
         for (const [type, amount] of Object.entries(level.fixedRewards)) {
             if (amount > 0) {
                 fixedTypes.add(type);
-                resources.push({ type, isProbabilistic: false });
+                resources.push({ 
+                    type, 
+                    isProbabilistic: false,
+                    minAmount: amount,
+                    maxAmount: amount
+                });
             }
         }
         
@@ -1649,9 +1663,27 @@ class LobbySystem {
         if (levelData && levelData.dropTable) {
             levelData.dropTable.forEach(drop => {
                 if (!fixedTypes.has(drop.resourceType)) {
-                    // 只添加一次
-                    if (!resources.find(r => r.type === drop.resourceType)) {
-                        resources.push({ type: drop.resourceType, isProbabilistic: true });
+                    // 检查是否已存在该类型（合并多个概率掉落）
+                    const existing = resources.find(r => r.type === drop.resourceType);
+                    if (existing) {
+                        // 合并范围
+                        existing.minAmount = Math.min(existing.minAmount, drop.minAmount || 0);
+                        existing.maxAmount = Math.max(existing.maxAmount, drop.maxAmount || 0);
+                    } else {
+                        resources.push({ 
+                            type: drop.resourceType, 
+                            isProbabilistic: true,
+                            minAmount: 0, // 概率掉落最小值为0
+                            maxAmount: drop.maxAmount || 0
+                        });
+                    }
+                } else {
+                    // 固定掉落中已有该类型，添加概率掉落的额外范围
+                    const existing = resources.find(r => r.type === drop.resourceType);
+                    if (existing) {
+                        existing.isProbabilistic = true; // 标记为有概率部分
+                        existing.minAmount = existing.minAmount; // 固定部分
+                        existing.maxAmount = existing.maxAmount + (drop.maxAmount || 0); // 固定 + 概率最大值
                     }
                 }
             });

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>科技系统测试</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #1a1a2e;
+            color: #eee;
+        }
+        .section {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: #2a2a4e;
+            border-radius: 8px;
+        }
+        button {
+            margin: 5px;
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            background-color: #1a1a3e;
+            border-radius: 5px;
+            font-family: monospace;
+            white-space: pre-wrap;
+        }
+        .success {
+            color: #4CAF50;
+        }
+        .error {
+            color: #f44336;
+        }
+        .info {
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <h1>科技系统测试</h1>
+
+    <div class="section">
+        <h2>1. 系统初始化测试</h2>
+        <button onclick="testInitialization()">测试初始化</button>
+        <div id="init-result" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>2. 添加资源并升级</h2>
+        <button onclick="addResources()">添加资源（铁100，铜100）</button>
+        <button onclick="testUpgrade()">升级速射炮伤害</button>
+        <div id="upgrade-result" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>3. 查看武器属性</h2>
+        <button onclick="viewWeaponStats('BASIC_GUN')">查看速射炮</button>
+        <button onclick="viewWeaponStats('SHOTGUN')">查看霰弹枪</button>
+        <button onclick="viewWeaponStats('MISSILE')">查看导弹</button>
+        <div id="weapon-result" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>4. 验证升级应用</h2>
+        <button onclick="verifyUpgradeApplication()">验证升级是否应用到武器</button>
+        <div id="verify-result" class="result"></div>
+    </div>
+
+    <div class="section">
+        <h2>5. 完整流程测试</h2>
+        <button onclick="fullFlowTest()">运行完整测试</button>
+        <div id="flow-result" class="result"></div>
+    </div>
+
+    <!-- 加载游戏脚本 -->
+    <script src="player.js"></script>
+    <script src="tech.js"></script>
+    <script src="weapon.js"></script>
+
+    <script>
+        let player, techSystem, weaponSystem;
+
+        function log(elementId, message, type = 'info') {
+            const element = document.getElementById(elementId);
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type;
+            element.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+        }
+
+        function clear(elementId) {
+            document.getElementById(elementId).innerHTML = '';
+        }
+
+        function testInitialization() {
+            clear('init-result');
+            try {
+                // 创建玩家
+                player = new Player();
+                log('init-result', '✓ 玩家创建成功', 'success');
+
+                // 创建科技系统
+                techSystem = new TechSystem(player);
+                log('init-result', '✓ 科技系统创建成功', 'success');
+
+                // 创建武器系统（需要canvas）
+                const canvas = document.createElement('canvas');
+                weaponSystem = new WeaponSystem(canvas, player);
+                weaponSystem.setTechSystem(techSystem);
+                log('init-result', '✓ 武器系统创建成功', 'success');
+
+                log('init-result', '\n初始化完成！所有系统就绪。', 'success');
+            } catch (error) {
+                log('init-result', `✗ 初始化失败: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function addResources() {
+            clear('upgrade-result');
+            if (!player) {
+                log('upgrade-result', '请先运行系统初始化测试', 'error');
+                return;
+            }
+
+            player.addResource('iron', 100);
+            player.addResource('copper', 100);
+            player.addResource('cobalt', 50);
+            player.addResource('nickel', 30);
+
+            const resources = player.getAllResources();
+            log('upgrade-result', '✓ 资源已添加:', 'success');
+            log('upgrade-result', JSON.stringify(resources, null, 2), 'info');
+        }
+
+        function testUpgrade() {
+            if (!techSystem || !player) {
+                log('upgrade-result', '请先运行系统初始化测试', 'error');
+                return;
+            }
+
+            const techId = 'BASIC_GUN_DAMAGE';
+            
+            // 检查是否可以升级
+            const canUpgrade = techSystem.canUpgrade(techId);
+            log('upgrade-result', `\n检查升级条件: ${JSON.stringify(canUpgrade, null, 2)}`, 'info');
+
+            if (canUpgrade.success) {
+                // 执行升级
+                const result = techSystem.upgrade(techId);
+                if (result.success) {
+                    log('upgrade-result', `✓ 升级成功！当前等级: ${result.newLevel}`, 'success');
+                    
+                    // 重新初始化武器
+                    weaponSystem.initializeWeapons();
+                    log('upgrade-result', '✓ 武器已重新初始化', 'success');
+                } else {
+                    log('upgrade-result', `✗ 升级失败: ${result.reason}`, 'error');
+                }
+            } else {
+                log('upgrade-result', `✗ 无法升级: ${canUpgrade.reason}`, 'error');
+            }
+
+            // 显示剩余资源
+            const resources = player.getAllResources();
+            log('upgrade-result', `\n剩余资源: ${JSON.stringify(resources, null, 2)}`, 'info');
+        }
+
+        function viewWeaponStats(weaponId) {
+            clear('weapon-result');
+            if (!techSystem || !weaponSystem) {
+                log('weapon-result', '请先运行系统初始化测试', 'error');
+                return;
+            }
+
+            try {
+                // 获取原始武器数据
+                const originalWeapon = WeaponPresets[weaponId];
+                log('weapon-result', `=== ${originalWeapon.name} (${weaponId}) ===`, 'success');
+                
+                // 获取科技升级
+                const upgrades = techSystem.getWeaponUpgrades(weaponId);
+                log('weapon-result', '\n当前科技升级:', 'info');
+                log('weapon-result', JSON.stringify(upgrades, null, 2), 'info');
+
+                // 获取应用升级后的武器
+                const upgradedWeapon = techSystem.applyUpgradesToWeapon(originalWeapon);
+                
+                log('weapon-result', '\n原始属性 vs 升级后属性:', 'info');
+                log('weapon-result', `伤害: ${originalWeapon.damage} → ${upgradedWeapon.damage}`, 'info');
+                log('weapon-result', `冷却: ${originalWeapon.cooldown}ms → ${upgradedWeapon.cooldown}ms`, 'info');
+                log('weapon-result', `子弹数: ${originalWeapon.bulletsPerShot} → ${upgradedWeapon.bulletsPerShot}`, 'info');
+                log('weapon-result', `子弹速度: ${originalWeapon.bulletSpeed} → ${upgradedWeapon.bulletSpeed}`, 'info');
+
+                // 获取该武器的所有科技
+                const techs = techSystem.getWeaponTechs(weaponId);
+                log('weapon-result', '\n科技等级:', 'info');
+                techs.forEach(({ tech, currentLevel }) => {
+                    log('weapon-result', `  ${tech.name}: Lv${currentLevel}/${tech.maxLevel}`, 'info');
+                });
+
+            } catch (error) {
+                log('weapon-result', `✗ 查看失败: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function verifyUpgradeApplication() {
+            clear('verify-result');
+            if (!techSystem || !weaponSystem || !player) {
+                log('verify-result', '请先运行系统初始化测试', 'error');
+                return;
+            }
+
+            try {
+                log('verify-result', '=== 验证升级应用 ===', 'success');
+
+                // 添加资源
+                player.addResource('iron', 500);
+                player.addResource('copper', 500);
+                log('verify-result', '✓ 添加测试资源', 'success');
+
+                // 升级速射炮伤害到Lv3
+                for (let i = 0; i < 3; i++) {
+                    const result = techSystem.upgrade('BASIC_GUN_DAMAGE');
+                    if (result.success) {
+                        log('verify-result', `✓ 速射炮伤害升级到 Lv${result.newLevel}`, 'success');
+                    }
+                }
+
+                // 重新初始化武器
+                weaponSystem.initializeWeapons();
+                log('verify-result', '✓ 武器重新初始化', 'success');
+
+                // 检查武器系统中的武器是否应用了升级
+                const weaponInSystem = weaponSystem.getWeapon('Q');
+                const originalWeapon = WeaponPresets['BASIC_GUN'];
+                const upgradedWeapon = techSystem.applyUpgradesToWeapon(originalWeapon);
+
+                log('verify-result', '\n武器系统中的武器属性:', 'info');
+                log('verify-result', `伤害: ${weaponInSystem.damage}`, 'info');
+                log('verify-result', `期望伤害: ${upgradedWeapon.damage}`, 'info');
+
+                if (weaponInSystem.damage === upgradedWeapon.damage) {
+                    log('verify-result', '\n✓✓✓ 验证成功！科技升级已正确应用到武器！', 'success');
+                } else {
+                    log('verify-result', '\n✗✗✗ 验证失败！升级未应用或应用不正确！', 'error');
+                    log('verify-result', `实际伤害: ${weaponInSystem.damage}, 期望伤害: ${upgradedWeapon.damage}`, 'error');
+                }
+
+            } catch (error) {
+                log('verify-result', `✗ 验证失败: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+
+        function fullFlowTest() {
+            clear('flow-result');
+            
+            try {
+                log('flow-result', '=== 完整流程测试 ===\n', 'success');
+
+                // 1. 初始化
+                log('flow-result', '步骤1: 初始化系统', 'info');
+                player = new Player();
+                techSystem = new TechSystem(player);
+                const canvas = document.createElement('canvas');
+                weaponSystem = new WeaponSystem(canvas, player);
+                weaponSystem.setTechSystem(techSystem);
+                log('flow-result', '✓ 系统初始化完成\n', 'success');
+
+                // 2. 添加资源
+                log('flow-result', '步骤2: 添加资源', 'info');
+                player.addResource('iron', 1000);
+                player.addResource('copper', 1000);
+                player.addResource('cobalt', 500);
+                log('flow-result', `✓ 当前资源: ${JSON.stringify(player.getAllResources())}\n`, 'success');
+
+                // 3. 查看初始武器属性
+                log('flow-result', '步骤3: 查看速射炮初始属性', 'info');
+                const originalWeapon = WeaponPresets['BASIC_GUN'];
+                log('flow-result', `伤害: ${originalWeapon.damage}, 冷却: ${originalWeapon.cooldown}ms\n`, 'info');
+
+                // 4. 升级伤害
+                log('flow-result', '步骤4: 升级速射炮伤害', 'info');
+                for (let i = 0; i < 5; i++) {
+                    const result = techSystem.upgrade('BASIC_GUN_DAMAGE');
+                    if (result.success) {
+                        log('flow-result', `✓ 升级到 Lv${result.newLevel}`, 'success');
+                    } else {
+                        log('flow-result', `✗ 升级失败: ${result.reason}`, 'error');
+                        break;
+                    }
+                }
+
+                // 5. 升级冷却
+                log('flow-result', '\n步骤5: 升级速射炮冷却', 'info');
+                for (let i = 0; i < 3; i++) {
+                    const result = techSystem.upgrade('BASIC_GUN_COOLDOWN');
+                    if (result.success) {
+                        log('flow-result', `✓ 升级到 Lv${result.newLevel}`, 'success');
+                    } else {
+                        log('flow-result', `✗ 升级失败: ${result.reason}`, 'error');
+                        break;
+                    }
+                }
+
+                // 6. 应用升级
+                log('flow-result', '\n步骤6: 应用升级到武器', 'info');
+                weaponSystem.initializeWeapons();
+                log('flow-result', '✓ 武器重新初始化完成\n', 'success');
+
+                // 7. 验证最终属性
+                log('flow-result', '步骤7: 验证最终属性', 'info');
+                const upgradedWeapon = techSystem.applyUpgradesToWeapon(originalWeapon);
+                const weaponInSystem = weaponSystem.getWeapon('Q');
+                
+                log('flow-result', '原始属性:', 'info');
+                log('flow-result', `  伤害: ${originalWeapon.damage}, 冷却: ${originalWeapon.cooldown}ms`, 'info');
+                log('flow-result', '升级后属性:', 'info');
+                log('flow-result', `  伤害: ${upgradedWeapon.damage}, 冷却: ${upgradedWeapon.cooldown}ms`, 'info');
+                log('flow-result', '武器系统中的属性:', 'info');
+                log('flow-result', `  伤害: ${weaponInSystem.damage}, 冷却: ${weaponInSystem.cooldown}ms`, 'info');
+
+                // 8. 最终验证
+                log('flow-result', '\n步骤8: 最终验证', 'info');
+                const damageMatch = weaponInSystem.damage === upgradedWeapon.damage;
+                const cooldownMatch = weaponInSystem.cooldown === upgradedWeapon.cooldown;
+                
+                if (damageMatch && cooldownMatch) {
+                    log('flow-result', '\n🎉🎉🎉 完整测试通过！科技系统工作正常！', 'success');
+                } else {
+                    log('flow-result', '\n❌ 测试失败！', 'error');
+                    if (!damageMatch) log('flow-result', `伤害不匹配: ${weaponInSystem.damage} ≠ ${upgradedWeapon.damage}`, 'error');
+                    if (!cooldownMatch) log('flow-result', `冷却不匹配: ${weaponInSystem.cooldown} ≠ ${upgradedWeapon.cooldown}`, 'error');
+                }
+
+                // 显示剩余资源
+                log('flow-result', `\n剩余资源: ${JSON.stringify(player.getAllResources())}`, 'info');
+
+            } catch (error) {
+                log('flow-result', `\n✗ 测试过程出错: ${error.message}`, 'error');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

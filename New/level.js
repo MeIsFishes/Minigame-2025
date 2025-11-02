@@ -105,7 +105,7 @@ const LevelPresets = {
         name: '遮天蔽日',
         description: '敌机密度极高，小心应对！',
         difficulty: 2, // ⭐⭐ 难度：2星
-        duration: 50000,
+        duration: 60000,
         enemyTypes: ['BASIC', 'FAST', 'LIGHT_MEDIC'],
         initialSpawnInterval: 800, // 初始间隔很短
         intervalDecreaseRate: 20,
@@ -149,7 +149,7 @@ const LevelPresets = {
         name: '第十五铁甲师',
         description: '装甲部队来袭！需要强大的火力才能突破。',
         difficulty: 2, // ⭐⭐ 难度：2星
-        duration: 55000,
+        duration: 60000,
         enemyTypes: ['ARMORED', 'HEAVY_ARMORED', 'HEAVY_MEDIC'],
         initialSpawnInterval: 3000,
         intervalDecreaseRate: 70,
@@ -164,6 +164,30 @@ const LevelPresets = {
         dropTable: [
             { resourceType: 'cobalt', probability: 0.9, minAmount: 1, maxAmount: 3 },
             { resourceType: 'nickel', probability: 0.9, minAmount: 1, maxAmount: 3 }
+        ]
+    }),
+    
+    LEVEL_5: new LevelData({
+        id: 'LEVEL_5',
+        name: '第二联合舰队',
+        description: '第二星系地方太空力量联合出击，极其危险！',
+        difficulty: 3, // ⭐⭐⭐ 难度：3星
+        duration: 80000,
+        enemyTypes: ['SHIELD', 'MOTHERSHIP', 'FAST', 'BOSS', 'LIGHT_MEDIC', 'HEAVY_MEDIC'],
+        initialSpawnInterval: 2800,
+        intervalDecreaseRate: 60,
+        minSpawnInterval: 1200,
+        fixedRewards: {
+            iron: 20,
+            copper: 20,
+            cobalt: 10,
+            nickel: 10,
+            gold: 5
+        },
+        dropTable: [
+            { resourceType: 'gold', probability: 1.0, minAmount: 1, maxAmount: 5 },
+            { resourceType: 'cobalt', probability: 0.6, minAmount: 2, maxAmount: 5 },
+            { resourceType: 'nickel', probability: 0.6, minAmount: 2, maxAmount: 5 }
         ]
     })
 };

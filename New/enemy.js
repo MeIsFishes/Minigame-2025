@@ -106,7 +106,7 @@ const EnemyPresets = {
         name: '轻型医疗机',
         health: 20,
         model: 'basic',
-        spawnWeight: 6,
+        spawnWeight: 5,
         minSpeed: 100,
         maxSpeed: 140,
         minSpawnHeight: 0.3,
@@ -175,10 +175,54 @@ const EnemyPresets = {
         height: 135,
         color: '#A0A0B0', // 深银色
         score: 50,
-        damageBlock: 15, // 重型铁甲提供15点伤害格挡
+        damageBlock: 10, // 重型铁甲提供10点伤害格挡
         shield: 0,
         shieldRegenDelay: 0,
         shieldRegenRate: 0
+    }),
+    
+    SHIELD: new EnemyData({
+        id: 'SHIELD',
+        name: '能量护盾飞机',
+        health: 5,
+        model: 'shield',
+        spawnWeight: 12,
+        minSpeed: 90,
+        maxSpeed: 130,
+        minSpawnHeight: 0.3,
+        maxSpawnHeight: 0.8,
+        killHeal: 0,
+        damage: 1,
+        width: 110,
+        height: 85,
+        color: '#4080FF', // 蓝色
+        score: 30,
+        damageBlock: 0,
+        shield: 50, // 50点护盾
+        shieldRegenDelay: 2000, // 2秒后开始恢复
+        shieldRegenRate: 15 // 每秒恢复15点护盾
+    }),
+    
+    MOTHERSHIP: new EnemyData({
+        id: 'MOTHERSHIP',
+        name: '母舰',
+        health: 120,
+        model: 'mothership',
+        spawnWeight: 3,
+        minSpeed: 25,
+        maxSpeed: 40,
+        minSpawnHeight: 0.2,
+        maxSpawnHeight: 0.5,
+        killHeal: 0,
+        damage: 3,
+        width: 250,
+        height: 190,
+        color: '#2060D0', // 深蓝色
+        score: 80,
+        damageBlock: 8, // 8点减伤
+        shield: 100, // 100点护盾
+        shieldRegenDelay: 1200, // 1.2秒后开始恢复
+        shieldRegenRate: 50 // 每秒恢复50点护盾（极快）
     })
 };
 
@@ -202,7 +246,9 @@ class EnemySystem {
             EnemyPresets.LIGHT_MEDIC,
             EnemyPresets.HEAVY_MEDIC,
             EnemyPresets.ARMORED,
-            EnemyPresets.HEAVY_ARMORED
+            EnemyPresets.HEAVY_ARMORED,
+            EnemyPresets.SHIELD,
+            EnemyPresets.MOTHERSHIP
         ];
         
         // 计算总权重

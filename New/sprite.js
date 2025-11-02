@@ -104,6 +104,12 @@ class SpriteRenderer {
             case 'heavy_armored':
                 this.drawHeavyArmoredEnemy(ctx, x, y, width, height, color);
                 break;
+            case 'shield':
+                this.drawShieldEnemy(ctx, x, y, width, height, color);
+                break;
+            case 'mothership':
+                this.drawMothershipEnemy(ctx, x, y, width, height, color);
+                break;
             default:
                 this.drawBasicEnemy(ctx, x, y, width, height, color);
         }
@@ -829,6 +835,270 @@ class SpriteRenderer {
         ctx.lineTo(x + w * 0.65, y + h * 0.85);
         ctx.lineTo(x + w * 0.45, y + h * 0.75);
         ctx.closePath();
+        ctx.fill();
+    }
+    
+    // 绘制能量护盾飞机（蓝色，带护盾效果）
+    drawShieldEnemy(ctx, x, y, w, h, color) {
+        ctx.shadowColor = '#4080FF';
+        ctx.shadowBlur = 25;
+        
+        // 主机身（流线型，蓝色科技感）
+        const gradient = ctx.createLinearGradient(x, y, x, y + h);
+        gradient.addColorStop(0, this.lightenColor(color, 1.3));
+        gradient.addColorStop(0.5, color);
+        gradient.addColorStop(1, this.darkenColor(color, 0.7));
+        ctx.fillStyle = gradient;
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.75, y + h * 0.5); // 机头
+        ctx.lineTo(x + w * 0.25, y + h * 0.25); // 上部
+        ctx.lineTo(x + w * 0.05, y + h * 0.5); // 机尾
+        ctx.lineTo(x + w * 0.25, y + h * 0.75); // 下部
+        ctx.closePath();
+        ctx.fill();
+        
+        // 能量核心（中央蓝色光球）
+        const coreGradient = ctx.createRadialGradient(
+            x + w * 0.45, y + h * 0.5, 0,
+            x + w * 0.45, y + h * 0.5, w * 0.15
+        );
+        coreGradient.addColorStop(0, '#FFFFFF');
+        coreGradient.addColorStop(0.3, '#80C0FF');
+        coreGradient.addColorStop(1, color);
+        ctx.fillStyle = coreGradient;
+        ctx.shadowBlur = 30;
+        ctx.shadowColor = '#80C0FF';
+        ctx.beginPath();
+        ctx.arc(x + w * 0.45, y + h * 0.5, w * 0.12, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 能量护盾发生器（上下各一个）
+        ctx.fillStyle = '#2060D0';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#4080FF';
+        // 上护盾发生器
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.35, y + h * 0.3, w * 0.08, h * 0.08, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // 下护盾发生器
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.35, y + h * 0.7, w * 0.08, h * 0.08, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 护盾发生器能量环
+        ctx.strokeStyle = '#80C0FF';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 10;
+        ctx.beginPath();
+        ctx.arc(x + w * 0.35, y + h * 0.3, w * 0.1, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.beginPath();
+        ctx.arc(x + w * 0.35, y + h * 0.7, w * 0.1, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // 能量翼（上下翅膀，蓝色发光）
+        ctx.fillStyle = this.lightenColor(color, 1.2);
+        ctx.shadowBlur = 20;
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.4, y + h * 0.25);
+        ctx.lineTo(x + w * 0.55, y + h * 0.05);
+        ctx.lineTo(x + w * 0.65, y + h * 0.2);
+        ctx.lineTo(x + w * 0.5, y + h * 0.35);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.4, y + h * 0.75);
+        ctx.lineTo(x + w * 0.55, y + h * 0.95);
+        ctx.lineTo(x + w * 0.65, y + h * 0.8);
+        ctx.lineTo(x + w * 0.5, y + h * 0.65);
+        ctx.closePath();
+        ctx.fill();
+        
+        // 翼尖能量点
+        ctx.fillStyle = '#FFFFFF';
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = '#80C0FF';
+        ctx.beginPath();
+        ctx.arc(x + w * 0.55, y + h * 0.05, w * 0.03, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + w * 0.55, y + h * 0.95, w * 0.03, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 引擎（蓝色能量喷射）
+        ctx.fillStyle = '#60A0FF';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#4080FF';
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.08, y + h * 0.5, w * 0.06, h * 0.12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 能量流线
+        ctx.strokeStyle = 'rgba(128, 192, 255, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.shadowBlur = 5;
+        for (let i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.2, y + h * (0.35 + i * 0.15));
+            ctx.lineTo(x + w * 0.6, y + h * (0.35 + i * 0.15));
+            ctx.stroke();
+        }
+    }
+    
+    // 绘制母舰（深蓝色，大型，护盾+减伤）
+    drawMothershipEnemy(ctx, x, y, w, h, color) {
+        ctx.shadowColor = '#2060D0';
+        ctx.shadowBlur = 35;
+        
+        // 主舰体（大型三角形）
+        const mainGradient = ctx.createLinearGradient(x, y, x, y + h);
+        mainGradient.addColorStop(0, this.lightenColor(color, 1.2));
+        mainGradient.addColorStop(0.5, color);
+        mainGradient.addColorStop(1, this.darkenColor(color, 0.6));
+        ctx.fillStyle = mainGradient;
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.8, y + h * 0.5); // 舰首
+        ctx.lineTo(x + w * 0.2, y + h * 0.2); // 上部
+        ctx.lineTo(x, y + h * 0.5); // 舰尾
+        ctx.lineTo(x + w * 0.2, y + h * 0.8); // 下部
+        ctx.closePath();
+        ctx.fill();
+        
+        // 中央指挥舱（球形突起）
+        const bridgeGradient = ctx.createRadialGradient(
+            x + w * 0.5, y + h * 0.5, 0,
+            x + w * 0.5, y + h * 0.5, w * 0.18
+        );
+        bridgeGradient.addColorStop(0, '#4080FF');
+        bridgeGradient.addColorStop(0.5, color);
+        bridgeGradient.addColorStop(1, this.darkenColor(color, 0.7));
+        ctx.fillStyle = bridgeGradient;
+        ctx.shadowBlur = 25;
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.15, h * 0.2, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 主能量核心（中央大型反应堆）
+        const coreGradient = ctx.createRadialGradient(
+            x + w * 0.5, y + h * 0.5, 0,
+            x + w * 0.5, y + h * 0.5, w * 0.1
+        );
+        coreGradient.addColorStop(0, '#FFFFFF');
+        coreGradient.addColorStop(0.4, '#80C0FF');
+        coreGradient.addColorStop(1, '#2060D0');
+        ctx.fillStyle = coreGradient;
+        ctx.shadowBlur = 40;
+        ctx.shadowColor = '#FFFFFF';
+        ctx.beginPath();
+        ctx.arc(x + w * 0.5, y + h * 0.5, w * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 装甲板（显示减伤能力）
+        ctx.fillStyle = this.darkenColor(color, 0.65);
+        ctx.shadowBlur = 10;
+        // 上装甲
+        ctx.fillRect(x + w * 0.25, y + h * 0.15, w * 0.45, h * 0.08);
+        // 下装甲
+        ctx.fillRect(x + w * 0.25, y + h * 0.77, w * 0.45, h * 0.08);
+        // 侧装甲
+        ctx.fillRect(x + w * 0.15, y + h * 0.35, w * 0.08, h * 0.3);
+        
+        // 装甲纹理线
+        ctx.strokeStyle = 'rgba(100, 150, 200, 0.5)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + w * (0.28 + i * 0.09), y + h * 0.15);
+            ctx.lineTo(x + w * (0.28 + i * 0.09), y + h * 0.85);
+            ctx.stroke();
+        }
+        
+        // 多个护盾发生器
+        ctx.fillStyle = '#4080FF';
+        ctx.shadowBlur = 20;
+        ctx.shadowColor = '#80C0FF';
+        const shieldPositions = [
+            [0.3, 0.3], [0.3, 0.7], [0.65, 0.3], [0.65, 0.7]
+        ];
+        shieldPositions.forEach(([px, py]) => {
+            ctx.beginPath();
+            ctx.arc(x + w * px, y + h * py, w * 0.05, 0, Math.PI * 2);
+            ctx.fill();
+            
+            // 护盾能量环
+            ctx.strokeStyle = 'rgba(128, 192, 255, 0.7)';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.arc(x + w * px, y + h * py, w * 0.07, 0, Math.PI * 2);
+            ctx.stroke();
+        });
+        
+        // 大型机翼/稳定翼
+        ctx.fillStyle = this.lightenColor(color, 1.15);
+        ctx.shadowBlur = 15;
+        // 上翼
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.4, y + h * 0.2);
+        ctx.lineTo(x + w * 0.6, y);
+        ctx.lineTo(x + w * 0.75, y + h * 0.15);
+        ctx.lineTo(x + w * 0.55, y + h * 0.3);
+        ctx.closePath();
+        ctx.fill();
+        // 下翼
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.4, y + h * 0.8);
+        ctx.lineTo(x + w * 0.6, y + h);
+        ctx.lineTo(x + w * 0.75, y + h * 0.85);
+        ctx.lineTo(x + w * 0.55, y + h * 0.7);
+        ctx.closePath();
+        ctx.fill();
+        
+        // 多引擎系统（三个引擎）
+        ctx.fillStyle = '#60A0FF';
+        ctx.shadowBlur = 25;
+        ctx.shadowColor = '#4080FF';
+        // 上引擎
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.08, y + h * 0.35, w * 0.06, h * 0.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // 中引擎
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.05, y + h * 0.5, w * 0.07, h * 0.12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        // 下引擎
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.08, y + h * 0.65, w * 0.06, h * 0.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 能量流线（显示强大能量）
+        ctx.strokeStyle = 'rgba(128, 192, 255, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.shadowBlur = 8;
+        for (let i = 0; i < 5; i++) {
+            ctx.beginPath();
+            ctx.moveTo(x + w * 0.15, y + h * (0.3 + i * 0.1));
+            ctx.lineTo(x + w * 0.7, y + h * (0.3 + i * 0.1));
+            ctx.stroke();
+        }
+        
+        // 舰桥观察窗
+        ctx.fillStyle = '#80C0FF';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#FFFFFF';
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.5, y + h * 0.5, w * 0.04, h * 0.06, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 翼尖能量炮（威胁感）
+        ctx.fillStyle = '#FF4040';
+        ctx.shadowColor = '#FF0000';
+        ctx.shadowBlur = 15;
+        ctx.beginPath();
+        ctx.arc(x + w * 0.75, y + h * 0.15, w * 0.025, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(x + w * 0.75, y + h * 0.85, w * 0.025, 0, Math.PI * 2);
         ctx.fill();
     }
 }

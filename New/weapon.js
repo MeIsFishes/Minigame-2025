@@ -70,8 +70,8 @@ const WeaponPresets = {
     SHOTGUN: new WeaponData({
         id: 'SHOTGUN',
         name: '霰弹枪',
-        damage: 3,
-        cooldown: 5000,
+        damage: 4,
+        cooldown: 5500,
         fireDelay: 0,
         bulletsPerShot: 10,
         burstCount: 1,
@@ -88,7 +88,7 @@ const WeaponPresets = {
         fadeOut: true,
         bulletModel: 'round',
         centerSpreadAngle: 5,
-        bulletSpreadAngle: 10,
+        bulletSpreadAngle: 25,
         trackingAngularSpeed: 0,
         explosionRadius: 0,
         penetration: 1,
@@ -101,8 +101,8 @@ const WeaponPresets = {
     SNIPER: new WeaponData({
         id: 'SNIPER',
         name: '狙击枪',
-        damage: 20,
-        cooldown: 15000,
+        damage: 25,
+        cooldown: 18000,
         fireDelay: 1000,
         bulletsPerShot: 1,
         burstCount: 1,
@@ -136,8 +136,8 @@ const WeaponPresets = {
         cooldown: 4000,
         fireDelay: 0,
         bulletsPerShot: 1,
-        burstCount: 6,
-        burstInterval: 80,
+        burstCount: 7,
+        burstInterval: 60,
         shootSound: 'machinegun',
         bulletWidth: 6,
         bulletHeight: 15,
@@ -164,7 +164,7 @@ const WeaponPresets = {
         id: 'MISSILE',
         name: '导弹',
         damage: 30,
-        cooldown: 70000,
+        cooldown: 80000,
         fireDelay: 0,
         bulletsPerShot: 1,
         burstCount: 1,
@@ -214,8 +214,8 @@ const WeaponPresets = {
         centerSpreadAngle: 0,
         bulletSpreadAngle: 0,
         trackingAngularSpeed: 0,
-        explosionRadius: 100,
-        penetration: 140,
+        explosionRadius: 0,
+        penetration: 100,
         color: '#00CED1',
         lockOnTarget: false,
         lockOnRange: 0,
@@ -560,7 +560,7 @@ class WeaponSystem {
         return nearest;
     }
     
-    // 在指定范围内寻找最近的目标
+    // 在指定范围内寻找最近的目标（基于X轴偏移量）
     findTargetInRange(x, y, range, enemySystem) {
         if (!enemySystem || range <= 0) return null;
         
@@ -568,26 +568,22 @@ class WeaponSystem {
         if (enemies.length === 0) return null;
         
         let nearest = null;
-        let minDistance = Infinity;
+        let minXDistance = Infinity;
         
         enemies.forEach(enemy => {
             // 只检测存活的敌机
             if (!enemy.isAlive || enemy.health <= 0) return;
             
+            // 计算X轴偏移量（从敌机中心到发射点）
+            const enemyCenterX = enemy.x + enemy.width / 2;
+            const xDistance = Math.abs(enemyCenterX - x);
+            
             // 检查是否在X轴索敌范围内
-            const xDistance = Math.abs(enemy.x + enemy.width / 2 - x);
             if (xDistance > range) return;
             
-            // 计算实际距离（勾股定理）
-            const enemyCenterX = enemy.x + enemy.width / 2;
-            const enemyCenterY = enemy.y + enemy.height / 2;
-            const distance = Math.sqrt(
-                Math.pow(enemyCenterX - x, 2) + 
-                Math.pow(enemyCenterY - y, 2)
-            );
-            
-            if (distance < minDistance) {
-                minDistance = distance;
+            // 找X轴偏移量最小的敌人
+            if (xDistance < minXDistance) {
+                minXDistance = xDistance;
                 nearest = enemy;
             }
         });
