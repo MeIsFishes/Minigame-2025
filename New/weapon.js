@@ -21,6 +21,7 @@ const WeaponSystem = {
             centerLineOffset: 0,   // 中心线散射角（度数）
             bulletSpreadAngle: 0, // 子弹散射角（度数）
             trackingSpeed: 0,     // 追踪角速度（度/秒）
+            explosionRadius: 0,    // 爆炸范围（像素，0表示无爆炸）
             color: "#ffff00"       // 武器颜色（影响子弹和键位）
         },
 
@@ -41,6 +42,7 @@ const WeaponSystem = {
             centerLineOffset: 0,   // 中心线散射角（度数）
             bulletSpreadAngle: 18, // 子弹散射角（度数）
             trackingSpeed: 0,     // 追踪角速度（度/秒）
+            explosionRadius: 0,    // 爆炸范围（像素，0表示无爆炸）
             color: "#ffaa00"       // 武器颜色（影响子弹和键位）
         },
 
@@ -61,6 +63,7 @@ const WeaponSystem = {
             centerLineOffset: 5,   // 中心线散射角（度数）
             bulletSpreadAngle: 5, // 子弹散射角（度数）
             trackingSpeed: 0,     // 追踪角速度（度/秒）
+            explosionRadius: 0,   // 爆炸范围（像素）
             color: "#ff6600"       // 武器颜色（影响子弹和键位）
         },
 
@@ -81,27 +84,29 @@ const WeaponSystem = {
             centerLineOffset: 0,   // 中心线散射角（度数）
             bulletSpreadAngle: 0, // 子弹散射角（度数）
             trackingSpeed: 0,     // 追踪角速度（度/秒）
-            pierceCount: 100,       // 穿透次数（可以击中3个敌人）
+            explosionRadius: 70,    // 爆炸范围（像素，0表示无爆炸）
+            pierceCount: 130,       // 穿透次数（可以击中100个敌人）
             color: "#00ffff"       // 武器颜色（青色）
         },
 
         // 导弹 - 追踪型武器
         missile: {
             name: "导弹",
-            damage: 15,           // 攻击力 - 高
-            cooldown: 8000,       // 冷却时间（毫秒）- 较长
+            damage: 25,           // 攻击力 - 高
+            cooldown: 35000,       // 冷却时间（毫秒）- 较长
             bulletCount: 1,       // 单次射击数量
             shotCount: 1,         // 射击次数
             shotInterval: 0,      // 射击间隔
             sound: "missile",     // 射击音效
             bulletWidth: 8,       // 子弹宽度（像素）- 较大
             bulletHeight: 25,     // 子弹高度（像素）
-            bulletSpeed: 500,     // 子弹速度（像素/秒）- 较慢
-            bulletAcceleration: 200, // 子弹加速度（像素/秒²）- 逐渐加速
-            lifetime: 6000,       // 子弹存在时间（毫秒）- 较长
+            bulletSpeed: 250,     // 子弹速度（像素/秒）- 较慢
+            bulletAcceleration: 400, // 子弹加速度（像素/秒²）- 逐渐加速
+            lifetime: 1500,       // 子弹存在时间（毫秒）- 较长
             centerLineOffset: 0,   // 中心线散射角（度数）
             bulletSpreadAngle: 0, // 子弹散射角（度数）
-            trackingSpeed: 180,   // 追踪角速度（度/秒）- 快速追踪
+            trackingSpeed: 90,   // 追踪角速度（度/秒）- 快速追踪
+            explosionRadius: 280,   // 爆炸范围（像素）- 大范围爆炸
             pierceCount: 1,       // 穿透次数（导弹只能击中一个目标）
             color: "#ff00ff"       // 武器颜色（品红）
         }
@@ -294,6 +299,10 @@ const BulletSystem = {
             trackingSpeed: weapon.trackingSpeed, // 追踪角速度
             targetEnemy: null,       // 追踪的目标敌机
             pierceCount: weapon.pierceCount || 1, // 穿透次数（默认1次）
+            explosionRadius: weapon.explosionRadius || 0, // 爆炸范围（像素）
+            color: weapon.color,     // 子弹颜色（用于爆炸效果）
+            hasExploded: false,      // 是否已经因为命中而爆炸过（避免重复爆炸）
+            hitEnemies: new Set(),   // 已击中的敌人ID集合（避免重复伤害）
             element: null
         };
 
@@ -311,6 +320,10 @@ const BulletSystem = {
         bullet.element.style.left = bullet.x + 'px';
         bullet.element.style.top = bullet.y + 'px';
         bullet.element.style.opacity = bullet.opacity; // 设置初始透明度
+
+        // 设置子弹朝向旋转
+        this.updateBulletRotation(bullet);
+
         gameArea.appendChild(bullet.element);
 
         this.bullets.push(bullet);
@@ -324,6 +337,16 @@ const BulletSystem = {
 
         element.style.background = `linear-gradient(45deg, ${baseColor}, ${darkerColor})`;
         element.style.boxShadow = `0 0 6px ${baseColor}`;
+    },
+
+    // 更新子弹旋转角度
+    updateBulletRotation(bullet) {
+        if (bullet.element) {
+            // 将弧度转换为度数，并调整角度使子弹朝向正确方向
+            // 注意：CSS transform的rotate是顺时针，而我们的angle是逆时针
+            const rotationDegrees = (bullet.angle * 180 / Math.PI) - 90;
+            bullet.element.style.transform = `rotate(${rotationDegrees}deg)`;
+        }
     },
 
     // 调整颜色亮度（辅助函数）
@@ -352,6 +375,16 @@ const BulletSystem = {
             const elapsedTime = currentTime - bullet.createdAt;
 
             if (elapsedTime > bullet.lifetime) {
+                // 子弹消失时触发爆炸（如果有爆炸效果且未因命中而爆炸过）
+                if (bullet.explosionRadius > 0 && !bullet.hasExploded) {
+                    EffectSystem.createBulletExplosion(
+                        bullet.x + bullet.width / 2,
+                        bullet.y + bullet.height / 2,
+                        bullet.explosionRadius,
+                        bullet.color
+                    );
+                }
+
                 gameArea.removeChild(bullet.element);
                 this.bullets.splice(i, 1);
                 continue;
@@ -384,11 +417,24 @@ const BulletSystem = {
             // 检查是否超出屏幕边界
             if (bullet.x < -bullet.width || bullet.x > GAME_WIDTH ||
                 bullet.y < -bullet.height || bullet.y > GAME_HEIGHT) {
+                // 子弹消失时触发爆炸（如果有爆炸效果且未因命中而爆炸过）
+                if (bullet.explosionRadius > 0 && !bullet.hasExploded) {
+                    EffectSystem.createBulletExplosion(
+                        bullet.x + bullet.width / 2,
+                        bullet.y + bullet.height / 2,
+                        bullet.explosionRadius,
+                        bullet.color
+                    );
+                }
+
                 gameArea.removeChild(bullet.element);
                 this.bullets.splice(i, 1);
             } else {
                 bullet.element.style.left = bullet.x + 'px';
                 bullet.element.style.top = bullet.y + 'px';
+
+                // 更新子弹旋转角度
+                this.updateBulletRotation(bullet);
             }
         }
     },
@@ -430,6 +476,9 @@ const BulletSystem = {
             // 更新角度
             bullet.angle += angleDiff;
 
+            // 更新子弹旋转角度（视觉效果）
+            this.updateBulletRotation(bullet);
+
             // 更新速度向量（追踪逻辑中也使用当前速度）
             bullet.vx = Math.cos(bullet.angle) * bullet.speed;
             bullet.vy = Math.sin(bullet.angle) * bullet.speed;
@@ -440,6 +489,16 @@ const BulletSystem = {
     remove(bullet) {
         const index = this.bullets.indexOf(bullet);
         if (index !== -1) {
+            // 子弹消失时触发爆炸（如果有爆炸效果且未因命中而爆炸过）
+            if (bullet.explosionRadius > 0 && !bullet.hasExploded) {
+                EffectSystem.createBulletExplosion(
+                    bullet.x + bullet.width / 2,
+                    bullet.y + bullet.height / 2,
+                    bullet.explosionRadius,
+                    bullet.color
+                );
+            }
+
             if (bullet.element && bullet.element.parentNode) {
                 gameArea.removeChild(bullet.element);
             }
