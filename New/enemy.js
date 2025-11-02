@@ -50,7 +50,7 @@ const EnemyPresets = {
     HEAVY: new EnemyData({
         id: 'HEAVY',
         name: '重型战机',
-        health: 70,
+        health: 90,
         model: 'heavy',
         spawnWeight: 8,
         minSpeed: 40,
@@ -86,7 +86,7 @@ const EnemyPresets = {
     BOSS: new EnemyData({
         id: 'BOSS',
         name: 'BOSS战机',
-        health: 140,
+        health: 200,
         model: 'boss',
         spawnWeight: 2,
         minSpeed: 30,
@@ -104,7 +104,7 @@ const EnemyPresets = {
     LIGHT_MEDIC: new EnemyData({
         id: 'LIGHT_MEDIC',
         name: '轻型医疗机',
-        health: 20,
+        health: 30,
         model: 'basic',
         spawnWeight: 5,
         minSpeed: 100,
@@ -122,7 +122,7 @@ const EnemyPresets = {
     HEAVY_MEDIC: new EnemyData({
         id: 'HEAVY_MEDIC',
         name: '重型医疗机',
-        health: 50,
+        health: 120,
         model: 'heavy',
         spawnWeight: 2,
         minSpeed: 60,
@@ -198,9 +198,9 @@ const EnemyPresets = {
         color: '#4080FF', // 蓝色
         score: 30,
         damageBlock: 0,
-        shield: 50, // 50点护盾
-        shieldRegenDelay: 2000, // 2秒后开始恢复
-        shieldRegenRate: 15 // 每秒恢复15点护盾
+        shield: 20, // 20点护盾
+        shieldRegenDelay: 1500, // 1.5秒后开始恢复
+        shieldRegenRate: 50 // 每秒恢复15点护盾
     }),
     
     MOTHERSHIP: new EnemyData({
@@ -219,10 +219,10 @@ const EnemyPresets = {
         height: 190,
         color: '#2060D0', // 深蓝色
         score: 80,
-        damageBlock: 8, // 8点减伤
+        damageBlock: 1, // 1点减伤
         shield: 100, // 100点护盾
-        shieldRegenDelay: 1200, // 1.2秒后开始恢复
-        shieldRegenRate: 50 // 每秒恢复50点护盾（极快）
+        shieldRegenDelay: 2500, // 2.5秒后开始恢复
+        shieldRegenRate: 100 // 每秒恢复100点护盾（极快）
     })
 };
 
@@ -280,14 +280,25 @@ class EnemySystem {
             return EnemyPresets.BASIC;
         }
         
-        // 计算可用类型的总权重
-        const totalWeight = availableTypes.reduce((sum, type) => sum + type.spawnWeight, 0);
+        // 获取关卡自定义权重配置
+        const customWeights = this.levelSystem && this.levelSystem.currentLevel ? 
+            this.levelSystem.currentLevel.enemyWeights : {};
+        
+        // 计算可用类型的总权重（使用关卡自定义权重或默认权重）
+        const totalWeight = availableTypes.reduce((sum, type) => {
+            const weight = customWeights[type.id] !== undefined ? 
+                customWeights[type.id] : type.spawnWeight;
+            return sum + weight;
+        }, 0);
         
         const rand = Math.random() * totalWeight;
         let weightSum = 0;
         
         for (const type of availableTypes) {
-            weightSum += type.spawnWeight;
+            // 使用关卡自定义权重（如果有）或默认权重
+            const weight = customWeights[type.id] !== undefined ? 
+                customWeights[type.id] : type.spawnWeight;
+            weightSum += weight;
             if (rand <= weightSum) {
                 return type;
             }
@@ -837,6 +848,11 @@ class EnemySystem {
     // 创建子弹爆炸特效
     createBulletExplosionEffect(bullet, explosionX, explosionY, effectSystem) {
         if (!bullet.explosionRadius || bullet.explosionRadius <= 0 || !effectSystem) return;
+        
+        // 播放爆炸音效（音量与爆炸范围和伤害相关）
+        if (window.audioSystem) {
+            window.audioSystem.playBulletExplosionSound(bullet.explosionRadius, bullet.damage);
+        }
         
         // 创建烟雾爆炸特效
         effectSystem.createExplosion(explosionX, explosionY, null, {

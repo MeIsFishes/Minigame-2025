@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>爆炸音效测试 - Press Any Key</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            padding: 40px;
+            margin: 0;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #FF6B35;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px rgba(255, 107, 53, 0.5);
+        }
+        
+        .subtitle {
+            text-align: center;
+            color: #888;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+        
+        .explosion-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 25px;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        .explosion-card {
+            background: linear-gradient(135deg, #2d2d44 0%, #1a1a2e 100%);
+            border: 2px solid #FF6B35;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .explosion-card::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,107,53,0.1) 0%, transparent 70%);
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+        
+        .explosion-card:hover::before {
+            opacity: 1;
+        }
+        
+        .explosion-card:hover {
+            border-color: #FFD700;
+            transform: translateY(-5px) scale(1.02);
+            box-shadow: 0 10px 30px rgba(255, 107, 53, 0.4);
+        }
+        
+        .explosion-name {
+            font-size: 22px;
+            color: #FFD700;
+            margin-bottom: 8px;
+            font-weight: bold;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        
+        .explosion-desc {
+            font-size: 13px;
+            color: #aaa;
+            margin-bottom: 15px;
+            line-height: 1.4;
+        }
+        
+        .explosion-stats {
+            display: flex;
+            justify-content: space-around;
+            margin: 15px 0;
+            padding: 12px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 8px;
+        }
+        
+        .stat {
+            text-align: center;
+        }
+        
+        .stat-label {
+            font-size: 11px;
+            color: #888;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            font-size: 18px;
+            color: #FF6B35;
+            font-weight: bold;
+        }
+        
+        .stat-value.radius {
+            color: #4ECDC4;
+        }
+        
+        .stat-value.damage {
+            color: #FF6B6B;
+        }
+        
+        .test-button {
+            background: linear-gradient(135deg, #FF6B35 0%, #F7931A 100%);
+            border: none;
+            color: white;
+            padding: 14px 35px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            box-shadow: 0 4px 15px rgba(255, 107, 53, 0.3);
+        }
+        
+        .test-button:hover {
+            transform: scale(1.08);
+            box-shadow: 0 6px 20px rgba(255, 107, 53, 0.5);
+        }
+        
+        .test-button:active {
+            transform: scale(0.95);
+        }
+        
+        .info {
+            text-align: center;
+            margin-top: 50px;
+            padding: 20px;
+            background: rgba(255, 107, 53, 0.1);
+            border-radius: 10px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        
+        .info h3 {
+            color: #FFD700;
+            margin-bottom: 15px;
+        }
+        
+        .info p {
+            color: #aaa;
+            font-size: 14px;
+            line-height: 1.6;
+            margin: 8px 0;
+        }
+        
+        .status {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 15px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 10px;
+            border: 2px solid #FF6B35;
+        }
+        
+        .status.enabled {
+            border-color: #4ecca3;
+            color: #4ecca3;
+        }
+        
+        .status.disabled {
+            border-color: #ff6b6b;
+            color: #ff6b6b;
+        }
+        
+        .icon {
+            font-size: 40px;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>💥 子弹爆炸音效测试系统</h1>
+    <div class="subtitle">音量与爆炸范围和伤害呈正相关</div>
+    
+    <div class="status" id="status">
+        <span id="status-text">正在初始化音效系统...</span>
+    </div>
+    
+    <div class="explosion-grid">
+        <!-- 小型爆炸 -->
+        <div class="explosion-card">
+            <div class="icon">💨</div>
+            <div class="explosion-name">小型爆炸</div>
+            <div class="explosion-desc">轻型武器的小范围爆炸</div>
+            <div class="explosion-stats">
+                <div class="stat">
+                    <div class="stat-label">范围</div>
+                    <div class="stat-value radius">50px</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">伤害</div>
+                    <div class="stat-value damage">10</div>
+                </div>
+            </div>
+            <button class="test-button" onclick="testExplosion(50, 10)">
+                🔊 播放
+            </button>
+        </div>
+        
+        <!-- 中型爆炸 -->
+        <div class="explosion-card">
+            <div class="icon">💥</div>
+            <div class="explosion-name">中型爆炸</div>
+            <div class="explosion-desc">标准战斗武器的爆炸效果</div>
+            <div class="explosion-stats">
+                <div class="stat">
+                    <div class="stat-label">范围</div>
+                    <div class="stat-value radius">100px</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">伤害</div>
+                    <div class="stat-value damage">20</div>
+                </div>
+            </div>
+            <button class="test-button" onclick="testExplosion(100, 20)">
+                🔊 播放
+            </button>
+        </div>
+        
+        <!-- 大型爆炸 -->
+        <div class="explosion-card">
+            <div class="icon">🔥</div>
+            <div class="explosion-name">大型爆炸</div>
+            <div class="explosion-desc">重型武器的大范围破坏</div>
+            <div class="explosion-stats">
+                <div class="stat">
+                    <div class="stat-label">范围</div>
+                    <div class="stat-value radius">180px</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">伤害</div>
+                    <div class="stat-value damage">25</div>
+                </div>
+            </div>
+            <button class="test-button" onclick="testExplosion(180, 25)">
+                🔊 播放
+            </button>
+        </div>
+        
+        <!-- 导弹爆炸 -->
+        <div class="explosion-card">
+            <div class="icon">🚀</div>
+            <div class="explosion-name">导弹爆炸</div>
+            <div class="explosion-desc">游戏中导弹的标准爆炸</div>
+            <div class="explosion-stats">
+                <div class="stat">
+                    <div class="stat-label">范围</div>
+                    <div class="stat-value radius">280px</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">伤害</div>
+                    <div class="stat-value damage">30</div>
+                </div>
+            </div>
+            <button class="test-button" onclick="testExplosion(280, 30)">
+                🔊 播放
+            </button>
+        </div>
+        
+        <!-- 超大爆炸 -->
+        <div class="explosion-card">
+            <div class="icon">☢️</div>
+            <div class="explosion-name">超大爆炸</div>
+            <div class="explosion-desc">毁灭性的超强破坏力</div>
+            <div class="explosion-stats">
+                <div class="stat">
+                    <div class="stat-label">范围</div>
+                    <div class="stat-value radius">350px</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">伤害</div>
+                    <div class="stat-value damage">50</div>
+                </div>
+            </div>
+            <button class="test-button" onclick="testExplosion(350, 50)">
+                🔊 播放
+            </button>
+        </div>
+        
+        <!-- 高伤低范围 -->
+        <div class="explosion-card">
+            <div class="icon">⚡</div>
+            <div class="explosion-name">集中爆炸</div>
+            <div class="explosion-desc">高伤害但范围较小的爆炸</div>
+            <div class="explosion-stats">
+                <div class="stat">
+                    <div class="stat-label">范围</div>
+                    <div class="stat-value radius">80px</div>
+                </div>
+                <div class="stat">
+                    <div class="stat-label">伤害</div>
+                    <div class="stat-value damage">40</div>
+                </div>
+            </div>
+            <button class="test-button" onclick="testExplosion(80, 40)">
+                🔊 播放
+            </button>
+        </div>
+    </div>
+    
+    <div class="info">
+        <h3>🎵 音效特性说明</h3>
+        <p><strong>动态音量：</strong>爆炸音效的音量由爆炸范围和伤害共同决定，范围越大、伤害越高，音效越响亮。</p>
+        <p><strong>持续时间：</strong>爆炸范围越大，音效持续时间越长（0.25秒-0.4秒）。</p>
+        <p><strong>音色变化：</strong>伤害值影响起始频率，爆炸范围影响滤波器频率，创造独特的音效特征。</p>
+        <p><strong>三层合成：</strong>低频爆炸声 + 白噪声冲击波 + 中频冲击，营造真实的爆炸感。</p>
+    </div>
+    
+    <script src="audio.js"></script>
+    <script>
+        // 检查音效系统状态
+        function checkAudioStatus() {
+            const statusDiv = document.getElementById('status');
+            const statusText = document.getElementById('status-text');
+            
+            if (window.audioSystem && window.audioSystem.isEnabled()) {
+                statusDiv.className = 'status enabled';
+                statusText.textContent = '✓ 音效系统已就绪 - 点击按钮试听不同规模的爆炸音效';
+            } else {
+                statusDiv.className = 'status disabled';
+                statusText.textContent = '✗ 音效系统未启用（请点击任意位置激活）';
+            }
+        }
+        
+        // 测试爆炸音效
+        function testExplosion(radius, damage) {
+            if (!window.audioSystem) {
+                alert('音效系统未初始化！');
+                return;
+            }
+            
+            console.log(`播放爆炸音效: 范围=${radius}px, 伤害=${damage}`);
+            window.audioSystem.playBulletExplosionSound(radius, damage);
+            
+            // 检查状态
+            checkAudioStatus();
+        }
+        
+        // 页面加载完成后检查状态
+        window.addEventListener('load', () => {
+            setTimeout(checkAudioStatus, 100);
+            
+            // 添加用户交互监听以启动音频上下文
+            document.addEventListener('click', checkAudioStatus, { once: true });
+        });
+    </script>
+</body>
+</html>

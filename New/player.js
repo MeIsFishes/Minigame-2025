@@ -19,6 +19,19 @@ class Player {
         // 科技升级系统（局外成长）
         this.techLevels = {}; // 存储每个科技的等级 { techId: level }
         
+        // 武器解锁状态
+        this.unlockedWeapons = new Set(); // 存储已解锁的武器ID
+        this.initializeUnlockedWeapons(); // 初始化解锁状态
+        
+        // 强化因子库存
+        this.ownedEnhancements = new Set(); // 存储已锻造的强化因子ID
+        
+        // 键位强化装配系统
+        // 存储每个键位装备的强化因子及其应用的实际数值
+        // { 'Q': { factorId: 'EXPLOSION_RADIUS', appliedValues: { cooldown: -500 } }, 'W': null, ... }
+        this.slotEnhancements = {};
+        this.initializeSlotEnhancements();
+        
         // 回调函数
         this.onHealthChangeCallback = null; // 血量变化时的回调
         this.onDamageCallback = null; // 受伤时的回调（用于特效和音效）
@@ -50,12 +63,32 @@ class Player {
         this.maxShield = 50;
     }
     
+    // 初始化已解锁武器
+    initializeUnlockedWeapons() {
+        // 检查所有武器，unlockCost为空或所有值为0的武器自动解锁
+        for (const [weaponId, weaponData] of Object.entries(WeaponPresets)) {
+            const unlockCost = weaponData.unlockCost || {};
+            const costValues = Object.values(unlockCost);
+            if (costValues.length === 0 || costValues.every(v => v === 0)) {
+                this.unlockedWeapons.add(weaponId);
+            }
+        }
+    }
+    
+    // 初始化键位强化槽
+    initializeSlotEnhancements() {
+        const keys = 'QWERTYUIOPASDFGHJKLZXCVBNM';
+        for (const key of keys) {
+            this.slotEnhancements[key] = null;
+        }
+    }
+    
     // 初始化默认武器配置
     initializeDefaultLoadout() {
-        // 默认所有排都使用基础机枪
-        this.weaponLoadout.row1 = WeaponPresets.BASIC_GUN;
-        this.weaponLoadout.row2 = WeaponPresets.SNIPER;
-        this.weaponLoadout.row3 = WeaponPresets.SHOTGUN;
+        // 玩家初始配置
+        this.weaponLoadout.row1 = WeaponPresets.BASIC_GUN;  // 第一排：速射炮
+        this.weaponLoadout.row2 = WeaponPresets.SNIPER;     // 第二排：狙击枪
+        this.weaponLoadout.row3 = WeaponPresets.SHOTGUN;    // 第三排：霰弹枪
     }
     
     // 为指定排设置武器
@@ -417,5 +450,202 @@ class Player {
             console.error('Failed to import data:', e);
             return false;
         }
+    }
+    
+    // 检查武器是否已解锁
+    isWeaponUnlocked(weaponId) {
+        return this.unlockedWeapons.has(weaponId);
+    }
+    
+    // 解锁武器
+    unlockWeapon(weaponId, cost) {
+        // 检查武器是否存在
+        const weapon = WeaponPresets[weaponId];
+        if (!weapon) {
+            return { success: false, message: '武器不存在' };
+        }
+        
+        // 检查是否已解锁
+        if (this.unlockedWeapons.has(weaponId)) {
+            return { success: false, message: '武器已解锁' };
+        }
+        
+        // 检查资源是否足够
+        for (const [resourceType, amount] of Object.entries(cost)) {
+            if (this.resources[resourceType] < amount) {
+                return { success: false, message: '资源不足' };
+            }
+        }
+        
+        // 扣除资源
+        for (const [resourceType, amount] of Object.entries(cost)) {
+            this.resources[resourceType] -= amount;
+        }
+        
+        // 解锁武器
+        this.unlockedWeapons.add(weaponId);
+        
+        // 触发资源变化回调
+        if (this.onResourceChangeCallback) {
+            this.onResourceChangeCallback(this.resources);
+        }
+        
+        return { success: true, message: '解锁成功' };
+    }
+    
+    // 获取所有已解锁的武器
+    getUnlockedWeapons() {
+        return Array.from(this.unlockedWeapons);
+    }
+    
+    // ===== 强化因子管理 =====
+    
+    // 检查强化因子是否已锻造
+    hasEnhancement(factorId) {
+        return this.ownedEnhancements.has(factorId);
+    }
+    
+    // 锻造强化因子
+    forgeEnhancement(factorId, cost) {
+        // 检查是否已拥有
+        if (this.ownedEnhancements.has(factorId)) {
+            return { success: false, message: '已拥有该强化因子' };
+        }
+        
+        // 检查资源是否足够
+        for (const [resourceType, amount] of Object.entries(cost)) {
+            if (!this.resources[resourceType] || this.resources[resourceType] < amount) {
+                return { success: false, message: '资源不足' };
+            }
+        }
+        
+        // 扣除资源
+        for (const [resourceType, amount] of Object.entries(cost)) {
+            this.resources[resourceType] -= amount;
+        }
+        
+        // 添加强化因子
+        this.ownedEnhancements.add(factorId);
+        
+        // 触发资源变化回调
+        if (this.onResourceChangeCallback) {
+            this.onResourceChangeCallback(this.resources);
+        }
+        
+        return { success: true, message: '锻造成功' };
+    }
+    
+    // 获取所有已锻造的强化因子
+    getOwnedEnhancements() {
+        return Array.from(this.ownedEnhancements);
+    }
+    
+    // ===== 键位强化装配管理 =====
+    
+    // 获取键位装备的强化因子ID
+    getSlotEnhancement(key) {
+        key = key.toUpperCase();
+        const slotData = this.slotEnhancements[key];
+        return slotData ? slotData.factorId : null;
+    }
+    
+    // 获取键位的完整装配数据（包括应用的数值）
+    getSlotEnhancementData(key) {
+        key = key.toUpperCase();
+        return this.slotEnhancements[key] || null;
+    }
+    
+    // 装配强化因子到键位
+    equipSlotEnhancement(key, factorId) {
+        key = key.toUpperCase();
+        
+        // 检查键位是否有效
+        if (!this.slotEnhancements.hasOwnProperty(key)) {
+            return { success: false, message: '无效的键位' };
+        }
+        
+        // 检查是否拥有该强化因子
+        if (!this.ownedEnhancements.has(factorId)) {
+            return { success: false, message: '未拥有该强化因子' };
+        }
+        
+        // 检查该因子是否已装配到其他槽位
+        for (const [slotKey, slotData] of Object.entries(this.slotEnhancements)) {
+            if (slotData && slotData.factorId === factorId && slotKey !== key) {
+                return { success: false, message: '该强化因子已装配到其他槽位' };
+            }
+        }
+        
+        // 检查装配数量限制（最多5个槽位）
+        const equippedCount = Object.values(this.slotEnhancements).filter(f => f !== null).length;
+        const currentlyEquipped = this.slotEnhancements[key] !== null;
+        
+        if (!currentlyEquipped && equippedCount >= 5) {
+            return { success: false, message: '最多只能装配5个槽位' };
+        }
+        
+        // 获取强化因子
+        if (typeof EnhancementFactors === 'undefined') {
+            return { success: false, message: '强化因子数据未加载' };
+        }
+        
+        const factor = EnhancementFactors[factorId];
+        if (!factor) {
+            return { success: false, message: '未知的强化因子' };
+        }
+        
+        // 获取该键位的武器，计算实际应用的数值
+        const weapon = this.getWeaponForKey(key);
+        if (!weapon) {
+            return { success: false, message: '该键位未配置武器' };
+        }
+        
+        // 计算并存储实际应用的数值
+        const appliedValues = {};
+        
+        // 处理冷却时间百分比减少
+        if (factor.cooldownReduction > 0) {
+            const reduction = Math.round(weapon.cooldown * factor.cooldownReduction);
+            appliedValues.cooldown = -reduction; // 存储为负数表示减少
+        }
+        
+        // 装配强化因子，存储因子ID和实际应用的数值
+        this.slotEnhancements[key] = {
+            factorId: factorId,
+            appliedValues: appliedValues
+        };
+        
+        return { success: true, message: '装配成功' };
+    }
+    
+    // 卸载键位的强化因子
+    unequipSlotEnhancement(key) {
+        key = key.toUpperCase();
+        
+        if (!this.slotEnhancements.hasOwnProperty(key)) {
+            return { success: false, message: '无效的键位' };
+        }
+        
+        if (this.slotEnhancements[key] === null) {
+            return { success: false, message: '该槽位未装配强化因子' };
+        }
+        
+        this.slotEnhancements[key] = null;
+        return { success: true, message: '卸载成功' };
+    }
+    
+    // 获取所有已装配的槽位数量
+    getEquippedSlotCount() {
+        return Object.values(this.slotEnhancements).filter(f => f !== null).length;
+    }
+    
+    // 获取未装配的强化因子列表
+    getUnequippedEnhancements() {
+        const equipped = new Set(
+            Object.values(this.slotEnhancements)
+                .filter(slotData => slotData !== null)
+                .map(slotData => slotData.factorId)
+        );
+        return Array.from(this.ownedEnhancements).filter(factorId => !equipped.has(factorId));
     }
 }

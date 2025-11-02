@@ -31,6 +31,7 @@ class LevelData {
         this.difficulty = config.difficulty || 1; // 难度星级（1-5星，仅作提示用）
         this.duration = config.duration || 60000; // 关卡持续时间（毫秒）
         this.enemyTypes = config.enemyTypes || []; // 关卡包含的敌机ID列表
+        this.enemyWeights = config.enemyWeights || {}; // 覆盖敌机权重配置 { 'BASIC': 50, 'HEAVY': 10 }
         this.initialSpawnInterval = config.initialSpawnInterval || 2000; // 初始生成敌机间隔（毫秒）
         this.intervalDecreaseRate = config.intervalDecreaseRate || 50; // 每次生成后减少的间隔（毫秒）
         this.minSpawnInterval = config.minSpawnInterval || 500; // 最小生成间隔（毫秒）
@@ -87,7 +88,7 @@ const LevelPresets = {
         intervalDecreaseRate: 80,
         minSpawnInterval: 1000,
         fixedRewards: {
-            iron: 50,
+            iron: 40,
             copper: 20,
             cobalt: 0,
             nickel: 0,
@@ -96,7 +97,8 @@ const LevelPresets = {
         dropTable: [
             { resourceType: 'iron', probability: 1.0, minAmount: 0, maxAmount: 20 },
             { resourceType: 'copper', probability: 1.0, minAmount: 0, maxAmount: 10 },
-            { resourceType: 'cobalt', probability: 0.2, minAmount: 1, maxAmount: 5 }
+            { resourceType: 'cobalt', probability: 1.0, minAmount: 0, maxAmount: 2 },
+            { resourceType: 'nickel', probability: 1.0, minAmount: 0, maxAmount: 2 }
         ]
     }),
     
@@ -105,20 +107,26 @@ const LevelPresets = {
         name: '遮天蔽日',
         description: '敌机密度极高，小心应对！',
         difficulty: 2, // ⭐⭐ 难度：2星
-        duration: 60000,
+        duration: 80000,
         enemyTypes: ['BASIC', 'FAST', 'LIGHT_MEDIC'],
+        enemyWeights: {
+            'BASIC': 20,        // 普通战机为主
+            'FAST': 25,         // 快速战机
+            'LIGHT_MEDIC': 4    // 降低医疗机权重
+        },
         initialSpawnInterval: 800, // 初始间隔很短
         intervalDecreaseRate: 20,
         minSpawnInterval: 400, // 最小间隔极短
         fixedRewards: {
-            iron: 60,
-            copper: 10,
+            iron: 120,
+            copper: 40,
             cobalt: 0,
-            nickel: 5,
+            nickel: 10,
             gold: 0
         },
         dropTable: [
-            { resourceType: 'cobalt', probability: 0.5, minAmount: 0, maxAmount: 5 }
+            { resourceType: 'cobalt', probability: 1, minAmount: 0, maxAmount: 5 },
+            { resourceType: 'nickel', probability: 1, minAmount: 0, maxAmount: 5 }
         ]
     }),
     
@@ -127,67 +135,108 @@ const LevelPresets = {
         name: '航天中队',
         description: '各种战机组成的混编中队，且战且退。',
         difficulty: 2, // ⭐⭐ 难度：2星
-        duration: 60000,
+        duration: 80000,
         enemyTypes: ['BASIC', 'FAST', 'LIGHT_MEDIC', 'HEAVY'],
         initialSpawnInterval: 2500,
         intervalDecreaseRate: 80,
         minSpawnInterval: 1000,
         fixedRewards: {
-            iron: 20,
-            copper: 50,
-            cobalt: 5,
+            iron: 40,
+            copper: 120,
+            cobalt: 10,
             nickel: 0,
             gold: 0
         },
         dropTable: [
-            { resourceType: 'nickel', probability: 0.5, minAmount: 0, maxAmount: 5 }
+            { resourceType: 'cobalt', probability: 1, minAmount: 0, maxAmount: 5 },
+            { resourceType: 'nickel', probability: 1, minAmount: 0, maxAmount: 5 }
         ]
     }),
     
     LEVEL_4: new LevelData({
         id: 'LEVEL_4',
         name: '第十五铁甲师',
-        description: '装甲部队来袭！需要强大的火力才能突破。',
-        difficulty: 2, // ⭐⭐ 难度：2星
-        duration: 60000,
+        description: '装甲部队来袭！铁甲舰会格挡伤害，需要强大的火力才能突破。',
+        difficulty: 3, // ⭐⭐⭐ 难度：3星
+        duration: 100000,
         enemyTypes: ['ARMORED', 'HEAVY_ARMORED', 'HEAVY_MEDIC'],
         initialSpawnInterval: 3000,
         intervalDecreaseRate: 70,
         minSpawnInterval: 1500,
         fixedRewards: {
-            iron: 40,
-            copper: 40,
-            cobalt: 2,
-            nickel: 2,
+            iron: 100,
+            copper: 100,
+            cobalt: 5,
+            nickel: 5,
             gold: 0
         },
         dropTable: [
-            { resourceType: 'cobalt', probability: 0.9, minAmount: 1, maxAmount: 3 },
-            { resourceType: 'nickel', probability: 0.9, minAmount: 1, maxAmount: 3 }
+            { resourceType: 'cobalt', probability: 1, minAmount: 1, maxAmount: 10 },
+            { resourceType: 'nickel', probability: 1, minAmount: 1, maxAmount: 10 }
         ]
     }),
     
     LEVEL_5: new LevelData({
         id: 'LEVEL_5',
+        name: '民兵总预备队',
+        description: '边境星域的最后防线已被激活！久经训练的预备役部队倾巢而出，重型战斗机群如钢铁洪流般涌来，传奇王牌驾驶员更是亲自出战。他们誓死保卫家园，绝不后退半步。这将是一场生死存亡的血战！',
+        difficulty: 3, // ⭐⭐⭐ 难度：3星
+        duration: 100000,
+        enemyTypes: ['HEAVY', 'BOSS', 'BASIC', 'LIGHT_MEDIC'],
+        enemyWeights: {
+            'HEAVY': 25,         // 大量重型战机
+            'BOSS': 10,          // 强调BOSS机
+            'BASIC': 30,         // 一定数量普通战机
+            'LIGHT_MEDIC': 5     // 少量医疗机
+        },
+        initialSpawnInterval: 2200,
+        intervalDecreaseRate: 60,
+        minSpawnInterval: 1500,
+        fixedRewards: {
+            iron: 30,
+            copper: 30,
+            cobalt: 5,
+            nickel: 5,
+            gold: 10
+        },
+        dropTable: [
+            { resourceType: 'gold', probability: 1.0, minAmount: 0, maxAmount: 15 },  // 大量金矿
+            { resourceType: 'cobalt', probability: 1.0, minAmount: 0, maxAmount: 10 }, // 大量钴矿
+            { resourceType: 'nickel', probability: 1.0, minAmount: 0, maxAmount: 10 }, // 大量镍矿
+            { resourceType: 'iron', probability: 1, minAmount: 0, maxAmount: 15 },   // 少量铁矿
+            { resourceType: 'copper', probability: 1, minAmount: 0, maxAmount: 15 }  // 少量铜矿
+        ]
+    }),
+    
+    LEVEL_6: new LevelData({
+        id: 'LEVEL_6',
         name: '第二联合舰队',
         description: '第二星系地方太空力量联合出击，极其危险！',
-        difficulty: 3, // ⭐⭐⭐ 难度：3星
-        duration: 80000,
+        difficulty: 4, // ⭐⭐⭐⭐ 难度：4星
+        duration: 120000,
         enemyTypes: ['SHIELD', 'MOTHERSHIP', 'FAST', 'BOSS', 'LIGHT_MEDIC', 'HEAVY_MEDIC'],
+        enemyWeights: {
+            'SHIELD': 20,        // 提高护盾飞机出现率
+            'MOTHERSHIP': 8,     // 提高母舰出现率
+            'FAST': 15,          // 快速战机
+            'BOSS': 5,           // BOSS机
+            'LIGHT_MEDIC': 8,    // 轻型医疗
+            'HEAVY_MEDIC': 4     // 重型医疗
+        },
         initialSpawnInterval: 2800,
         intervalDecreaseRate: 60,
         minSpawnInterval: 1200,
         fixedRewards: {
-            iron: 20,
-            copper: 20,
-            cobalt: 10,
-            nickel: 10,
+            iron: 120,
+            copper: 120,
+            cobalt: 20,
+            nickel: 20,
             gold: 5
         },
         dropTable: [
-            { resourceType: 'gold', probability: 1.0, minAmount: 1, maxAmount: 5 },
-            { resourceType: 'cobalt', probability: 0.6, minAmount: 2, maxAmount: 5 },
-            { resourceType: 'nickel', probability: 0.6, minAmount: 2, maxAmount: 5 }
+            { resourceType: 'gold', probability: 1.0, minAmount: 0, maxAmount: 10 },
+            { resourceType: 'cobalt', probability: 1, minAmount: 0, maxAmount: 15 },
+            { resourceType: 'nickel', probability: 1, minAmount: 0, maxAmount: 15 }
         ]
     })
 };

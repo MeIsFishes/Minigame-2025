@@ -36,18 +36,21 @@ const TechUpgrades = {
     BASIC_GUN_DAMAGE: new TechUpgrade({
         id: 'BASIC_GUN_DAMAGE',
         name: '速射炮 - 伤害强化',
-        description: '每级提升速射炮伤害 +1',
+        description: '每级提升速射炮伤害 +2',
         weaponId: 'BASIC_GUN',
-        maxLevel: 5,
+        maxLevel: 8,
         costPerLevel: [
-            { iron: 20, copper: 5 },      // Lv1
-            { iron: 35, copper: 10 },     // Lv2
-            { iron: 50, copper: 30 },     // Lv3
-            { iron: 50, copper: 20, cobalt: 10 },     // Lv4
-            { iron: 40, copper: 30, cobalt: 40 },     // Lv5
+            { iron: 10, copper: 5 },      // Lv1
+            { iron: 20, copper: 10 },     // Lv2
+            { iron: 30, copper: 15 },     // Lv3
+            { iron: 50, copper: 20, cobalt: 5 },     // Lv4
+            { iron: 60, copper: 30, cobalt: 10 },     // Lv5
+            { iron: 70, copper: 35, cobalt: 10, nickel: 5, gold: 2 },     // Lv6
+            { iron: 80, copper: 40, cobalt: 10, nickel: 5, gold: 5 },     // Lv7
+            { iron: 90, copper: 45, cobalt: 10, nickel: 5, gold: 10 },     // Lv8
         ],
         upgradePerLevel: {
-            damage: 1  // 每级 +1 伤害
+            damage: 2  // 每级 +2 伤害
         }
     }),
     
@@ -56,13 +59,14 @@ const TechUpgrades = {
         name: '速射炮 - 冷却缩减',
         description: '每级减少速射炮冷却时间 -0.2s',
         weaponId: 'BASIC_GUN',
-        maxLevel: 5,
+        maxLevel: 6,
         costPerLevel: [
-            { iron: 25, copper: 8 },      // Lv1
-            { iron: 40, copper: 15 },     // Lv2
-            { iron: 55, copper: 30, cobalt: 15 },     // Lv3
-            { iron: 50, copper: 25, nickel: 20, cobalt: 30 },     // Lv4
-            { iron: 45, copper: 35, nickel: 40, cobalt: 50, gold: 10 }  // Lv5
+            { iron: 10 },      // Lv1
+            { iron: 20, copper: 5 },     // Lv2
+            { iron: 40, copper: 10 },     // Lv3
+            { iron: 45, copper: 15, nickel: 10 },     // Lv4
+            { iron: 50, copper: 25, nickel: 10, cobalt: 20 },     // Lv5
+            { iron: 60, copper: 35, nickel: 20, cobalt: 40, gold: 10 }  // Lv6
         ],
         upgradePerLevel: {
             cooldown: -200  // 每级 -200ms (-0.2s)
@@ -72,16 +76,16 @@ const TechUpgrades = {
     BASIC_GUN_TRACKING: new TechUpgrade({
         id: 'BASIC_GUN_TRACKING',
         name: '速射炮 - 追踪强化',
-        description: '每级提升速射炮追踪速度 +5°/s',
+        description: '每级提升速射炮追踪速度 +20°/s',
         weaponId: 'BASIC_GUN',
         maxLevel: 3,
         costPerLevel: [
             { iron: 15, copper: 8 },      // Lv1 (便宜)
             { iron: 30, copper: 20, nickel: 15 },     // Lv2 (消耗镍矿)
-            { iron: 40, copper: 30, nickel: 30, gold: 5 }  // Lv3 (消耗金矿)
+            { iron: 40, copper: 30, nickel: 15, gold: 5 }     // Lv3
         ],
         upgradePerLevel: {
-            trackingAngularSpeed: 5  // 每级 +5°/s
+            trackingAngularSpeed: 20  // 每级 +20°/s
         }
     }),
     
@@ -93,11 +97,11 @@ const TechUpgrades = {
         weaponId: 'SHOTGUN',
         maxLevel: 5,
         costPerLevel: [
-            { iron: 20, copper: 10 },     // Lv1
+            { iron: 10, copper: 5 },     // Lv1
             { iron: 35, copper: 15 },     // Lv2
-            { iron: 50, copper: 30, nickel: 20 },     // Lv3 (开始消耗稀有资源)
-            { iron: 50, copper: 25, nickel: 30, cobalt: 15 },     // Lv4
-            { iron: 40, copper: 35, nickel: 50, cobalt: 35 }      // Lv5
+            { iron: 50, copper: 30, cobalt: 2 },     // Lv3 (开始消耗稀有资源)
+            { iron: 50, copper: 25, nickel: 10, cobalt: 15 },     // Lv4
+            { iron: 40, copper: 35, nickel: 15, cobalt: 25 }      // Lv5
         ],
         upgradePerLevel: {
             bulletSpeed: 300  // 每级 +300
@@ -113,12 +117,12 @@ const TechUpgrades = {
         costPerLevel: [
             { iron: 25, copper: 12 },     // Lv1 (不消耗稀有资源)
             { iron: 40, copper: 20 },     // Lv2 (不消耗稀有资源)
-            { iron: 50, copper: 30, nickel: 30, cobalt: 20 },     // Lv3
-            { iron: 55, copper: 35, nickel: 50, cobalt: 40 },     // Lv4
-            { iron: 50, copper: 45, nickel: 70, cobalt: 60, gold: 8 }  // Lv5
+            { iron: 50, copper: 30, cobalt: 5 },     // Lv3
+            { iron: 55, copper: 35, nickel: 10, cobalt: 20 },     // Lv4
+            { iron: 50, copper: 45, nickel: 40, cobalt: 40, gold: 10 }  // Lv5
         ],
         upgradePerLevel: {
-            burstCount: 1  // 每级 +1 发射次数
+            bulletsPerShot: 1  // 每级 +1 发射次数
         }
     }),
     
@@ -129,11 +133,11 @@ const TechUpgrades = {
         weaponId: 'SHOTGUN',
         maxLevel: 5,
         costPerLevel: [
-            { iron: 20, copper: 8 },      // Lv1
-            { iron: 35, copper: 15 },     // Lv2
-            { iron: 50, copper: 25 },     // Lv3
-            { iron: 55, copper: 35 },     // Lv4
-            { iron: 50, copper: 40, nickel: 40, cobalt: 30, gold: 5 }  // Lv5 (消耗稀有资源)
+            { iron: 10 },      // Lv1
+            { iron: 15, copper: 5 },     // Lv2
+            { iron: 20, copper: 10 },     // Lv3
+            { iron: 25, copper: 15 },     // Lv4
+            { iron: 30, copper: 20 }  // Lv5
         ],
         upgradePerLevel: {
             bulletSpreadAngle: -3  // 每级 -3°
@@ -147,7 +151,7 @@ const TechUpgrades = {
         weaponId: 'SHOTGUN',
         maxLevel: 1,
         costPerLevel: [
-            { iron: 30, copper: 20, nickel: 80, cobalt: 60 }  // Lv1 (消耗大量稀有资源)
+            { iron: 30, copper: 20, nickel: 40, cobalt: 60 }  // Lv1 (消耗大量稀有资源)
         ],
         upgradePerLevel: {
             damage: 1  // +1 伤害
@@ -172,18 +176,18 @@ const TechUpgrades = {
     SNIPER_DAMAGE: new TechUpgrade({
         id: 'SNIPER_DAMAGE',
         name: '狙击枪 - 伤害强化',
-        description: '每级提升狙击枪伤害 +2',
+        description: '每级提升狙击枪伤害 +4',
         weaponId: 'SNIPER',
         maxLevel: 5,
         costPerLevel: [
             { iron: 8, copper: 25 },      // Lv1 (重铜轻铁)
             { iron: 12, copper: 45 },     // Lv2
             { iron: 18, copper: 65 },     // Lv3
-            { iron: 25, copper: 80, nickel: 20, cobalt: 15 },     // Lv4 (开始消耗稀有资源)
-            { iron: 30, copper: 100, nickel: 40, cobalt: 35 }     // Lv5
+            { iron: 25, copper: 80, nickel: 10, cobalt: 15 },     // Lv4 (开始消耗稀有资源)
+            { iron: 30, copper: 100, nickel: 20, cobalt: 35 }     // Lv5
         ],
         upgradePerLevel: {
-            damage: 2  // 每级 +2 伤害
+            damage: 4  // 每级 +4 伤害
         }
     }),
     
@@ -195,10 +199,10 @@ const TechUpgrades = {
         maxLevel: 5,
         costPerLevel: [
             { iron: 10, copper: 30 },     // Lv1
-            { iron: 15, copper: 50, nickel: 15, cobalt: 10 },     // Lv2 (开始消耗稀有资源)
-            { iron: 22, copper: 70, nickel: 30, cobalt: 25 },     // Lv3
-            { iron: 28, copper: 90, nickel: 50, cobalt: 40 },     // Lv4
-            { iron: 35, copper: 110, nickel: 70, cobalt: 60, gold: 8 }  // Lv5
+            { iron: 15, copper: 50, nickel: 5 },     // Lv2 (开始消耗稀有资源)
+            { iron: 22, copper: 70, nickel: 15, cobalt: 5 },     // Lv3
+            { iron: 28, copper: 90, nickel: 30, cobalt: 20 },     // Lv4
+            { iron: 35, copper: 110, nickel: 60, cobalt: 40, gold: 10 }  // Lv5
         ],
         upgradePerLevel: {
             cooldown: -500  // 每级 -500ms (-0.5s)
@@ -227,11 +231,13 @@ const TechUpgrades = {
         name: '机枪 - 射击次数',
         description: '每级增加机枪射击次数 +1',
         weaponId: 'MACHINE_GUN',
-        maxLevel: 3,
+        maxLevel: 5,
         costPerLevel: [
-            { iron: 25, copper: 10 },     // Lv1
-            { iron: 40, copper: 20, nickel: 30, cobalt: 20 },     // Lv2 (开始消耗稀有资源)
-            { iron: 45, copper: 30, nickel: 55, cobalt: 45, gold: 8 }  // Lv3
+            { iron: 10, copper: 5 },     // Lv1
+            { iron: 20, copper: 10 },     // Lv2
+            { iron: 30, copper: 15 },     // Lv3
+            { iron: 40, copper: 20, nickel: 15, cobalt: 5 },     // Lv4 (开始消耗稀有资源)
+            { iron: 45, copper: 30, nickel: 35, cobalt: 15, gold: 8 }  // Lv5
         ],
         upgradePerLevel: {
             burstCount: 1  // 每级 +1 射击次数
@@ -245,7 +251,7 @@ const TechUpgrades = {
         weaponId: 'MACHINE_GUN',
         maxLevel: 1,
         costPerLevel: [
-            { iron: 40, copper: 30, nickel: 80, cobalt: 70, gold: 15 }  // Lv1 (消耗大量稀有资源和金矿)
+            { iron: 40, copper: 30, nickel: 40, cobalt: 30, gold: 15 }  // Lv1 (消耗大量稀有资源和金矿)
         ],
         upgradePerLevel: {
             penetration: 1  // +1 穿透
@@ -259,7 +265,7 @@ const TechUpgrades = {
         weaponId: 'MACHINE_GUN',
         maxLevel: 1,
         costPerLevel: [
-            { iron: 35, copper: 25, nickel: 70, cobalt: 80 }  // Lv1 (消耗大量稀有资源)
+            { iron: 35, copper: 25, nickel: 20, cobalt: 20 }  // Lv1 (消耗大量稀有资源)
         ],
         upgradePerLevel: {
             damage: 1  // +1 伤害
@@ -271,9 +277,10 @@ const TechUpgrades = {
         name: '机枪 - 冷却缩减',
         description: '减少机枪冷却时间 -0.5s',
         weaponId: 'MACHINE_GUN',
-        maxLevel: 1,
+        maxLevel: 2,
         costPerLevel: [
-            { iron: 30, copper: 20, nickel: 50, cobalt: 45 }  // Lv1 (消耗稀有资源)
+            { iron: 20, copper: 10, nickel: 5 },  // Lv1 (消耗稀有资源)
+            { iron: 30, copper: 20, nickel: 10, cobalt: 5 }  // Lv2 (消耗稀有资源)
         ],
         upgradePerLevel: {
             cooldown: -500  // -0.5s (-500ms)
@@ -289,9 +296,9 @@ const TechUpgrades = {
         maxLevel: 4,
         costPerLevel: [
             { iron: 30, copper: 15 },     // Lv1
-            { iron: 50, copper: 25, nickel: 35, cobalt: 25 },     // Lv2 (开始消耗稀有资源)
-            { iron: 55, copper: 35, nickel: 60, cobalt: 50 },     // Lv3
-            { iron: 50, copper: 45, nickel: 85, cobalt: 75, gold: 12 }  // Lv4
+            { iron: 50, copper: 25, nickel: 10, cobalt: 5 },     // Lv2 (开始消耗稀有资源)
+            { iron: 55, copper: 35, nickel: 30, cobalt: 10 },     // Lv3
+            { iron: 50, copper: 45, nickel: 45, cobalt: 30, gold: 12 }  // Lv4
         ],
         upgradePerLevel: {
             cooldown: -5000  // 每级 -5000ms (-5s)
@@ -305,7 +312,7 @@ const TechUpgrades = {
         weaponId: 'MISSILE',
         maxLevel: 1,
         costPerLevel: [
-            { iron: 35, copper: 20, nickel: 45, cobalt: 40 }  // Lv1 (消耗稀有资源)
+            { iron: 35, copper: 20, nickel: 25, cobalt: 20 }  // Lv1 (消耗稀有资源)
         ],
         upgradePerLevel: {
             damage: 5  // +5 伤害
@@ -315,33 +322,33 @@ const TechUpgrades = {
     MISSILE_EXPLOSION: new TechUpgrade({
         id: 'MISSILE_EXPLOSION',
         name: '导弹 - 爆炸范围',
-        description: '每级增加导弹爆炸范围 +5',
+        description: '每级增加导弹爆炸范围 +25',
         weaponId: 'MISSILE',
         maxLevel: 5,
         costPerLevel: [
             { iron: 22, copper: 8 },      // Lv1
             { iron: 38, copper: 15 },     // Lv2
-            { iron: 52, copper: 32, nickel: 30, cobalt: 20 },     // Lv3 (开始消耗稀有资源)
-            { iron: 52, copper: 25, nickel: 50, cobalt: 40 },     // Lv4
-            { iron: 42, copper: 35, nickel: 70, cobalt: 60, gold: 10 }  // Lv5
+            { iron: 52, copper: 20, nickel: 10, cobalt: 5 },     // Lv3 (开始消耗稀有资源)
+            { iron: 52, copper: 25, nickel: 15, cobalt: 15 },     // Lv4
+            { iron: 42, copper: 35, nickel: 50, cobalt: 25, gold: 10 }  // Lv5
         ],
         upgradePerLevel: {
-            explosionRadius: 5  // 每级 +5 范围
+            explosionRadius: 25  // 每级 +25 范围
         }
     }),
     
     MISSILE_DOUBLE_SHOT: new TechUpgrade({
         id: 'MISSILE_DOUBLE_SHOT',
         name: '导弹 - 双发齐射',
-        description: '导弹获得双发能力，但冷却时间+30s',
+        description: '导弹获得双发能力，但伤害-10',
         weaponId: 'MISSILE',
         maxLevel: 1,
         costPerLevel: [
-            { iron: 60, copper: 60, nickel: 120, cobalt: 150, gold: 30 }  // Lv1 (消耗大量金矿和稀有资源)
+            { iron: 60, copper: 60, nickel: 50, cobalt: 50, gold: 30 }  // Lv1 (消耗大量金矿和稀有资源)
         ],
         upgradePerLevel: {
             burstCount: 1,     // +1 发射次数 (从1变2)
-            cooldown: 30000    // +30s (+30000ms)
+            damage: -10      // -10 伤害
         }
     }),
     
@@ -355,9 +362,9 @@ const TechUpgrades = {
         costPerLevel: [
             { iron: 18, copper: 8 },      // Lv1
             { iron: 32, copper: 12 },     // Lv2
-            { iron: 48, copper: 28, nickel: 25, cobalt: 15 },     // Lv3 (开始消耗稀有资源)
-            { iron: 48, copper: 22, nickel: 40, cobalt: 30 },     // Lv4
-            { iron: 38, copper: 32, nickel: 60, cobalt: 50 }      // Lv5
+            { iron: 48, copper: 28, nickel: 5, cobalt: 5 },     // Lv3 (开始消耗稀有资源)
+            { iron: 48, copper: 22, nickel: 10, cobalt: 15 },     // Lv4
+            { iron: 38, copper: 32, nickel: 20, cobalt: 30 }      // Lv5
         ],
         upgradePerLevel: {
             damage: 2  // 每级 +2 伤害
@@ -371,10 +378,10 @@ const TechUpgrades = {
         weaponId: 'PENETRATOR',
         maxLevel: 4,
         costPerLevel: [
-            { iron: 35, copper: 15, nickel: 30, cobalt: 25 },     // Lv1
-            { iron: 45, copper: 25, nickel: 50, cobalt: 45 },     // Lv2
-            { iron: 48, copper: 35, nickel: 70, cobalt: 65, gold: 5 },  // Lv3
-            { iron: 42, copper: 45, nickel: 90, cobalt: 85, gold: 12 }  // Lv4
+            { iron: 35, copper: 15, nickel: 5, cobalt: 5 },     // Lv1
+            { iron: 45, copper: 25, nickel: 10, cobalt: 10 },     // Lv2
+            { iron: 48, copper: 35, nickel: 30, cobalt: 30, gold: 5 },  // Lv3
+            { iron: 42, copper: 45, nickel: 50, cobalt: 50, gold: 12 }  // Lv4
         ],
         upgradePerLevel: {
             bulletWidth: 3,   // 每级 +3 宽度
@@ -389,8 +396,8 @@ const TechUpgrades = {
         weaponId: 'PENETRATOR',
         maxLevel: 2,
         costPerLevel: [
-            { iron: 30, copper: 15, nickel: 40, cobalt: 30 },     // Lv1
-            { iron: 40, copper: 25, nickel: 70, cobalt: 60, gold: 8 }  // Lv2 (消耗稀有资源)
+            { iron: 30, copper: 15, nickel: 5, cobalt: 10 },     // Lv1
+            { iron: 40, copper: 25, nickel: 20, cobalt: 30, gold: 8 }  // Lv2 (消耗稀有资源)
         ],
         upgradePerLevel: {
             cooldown: -1000  // 每级 -1000ms (-1s)
@@ -404,10 +411,71 @@ const TechUpgrades = {
         weaponId: 'PENETRATOR',
         maxLevel: 1,
         costPerLevel: [
-            { iron: 50, copper: 50, nickel: 100, cobalt: 120, gold: 20 }  // Lv1 (消耗金矿和大量稀有资源)
+            { iron: 50, copper: 50, nickel: 70, cobalt: 70, gold: 20 }  // Lv1 (消耗金矿和大量稀有资源)
         ],
         upgradePerLevel: {
             explosionRadius: 140  // +140 爆炸范围
+        }
+    }),
+    
+    // ===== 散射机炮升级 =====
+    SCATTER_CANNON_BULLETS: new TechUpgrade({
+        id: 'SCATTER_CANNON_BULLETS',
+        name: '散射机炮 - 子母连珠',
+        description: '每级增加散射机炮每轮射击弹药数 +1',
+        weaponId: 'SCATTER_CANNON',
+        maxLevel: 3,
+        costPerLevel: [
+            { iron: 40, copper: 40 },  // Lv1 (不消耗金矿)
+            { gold: 8, iron: 40, copper: 40, nickel: 10, cobalt: 10 },  // Lv2 (消耗金矿)
+            { gold: 15, iron: 50, copper: 50, nickel: 30, cobalt: 30 }  // Lv3 (更多金矿)
+        ],
+        upgradePerLevel: {
+            bulletsPerShot: 1  // 每级 +1 弹药数
+        }
+    }),
+    
+    SCATTER_CANNON_BURST: new TechUpgrade({
+        id: 'SCATTER_CANNON_BURST',
+        name: '散射机炮 - 预热炮管',
+        description: '增加散射机炮射击轮数 +1',
+        weaponId: 'SCATTER_CANNON',
+        maxLevel: 1,
+        costPerLevel: [
+            { gold: 20, iron: 60, copper: 60, nickel: 40, cobalt: 40 }  // Lv1 (消耗大量金矿和稀有资源)
+        ],
+        upgradePerLevel: {
+            burstCount: 1  // +1 射击轮数
+        }
+    }),
+    
+    SCATTER_CANNON_SIZE: new TechUpgrade({
+        id: 'SCATTER_CANNON_SIZE',
+        name: '散射机炮 - 超大口径',
+        description: '每级增加散射机炮子弹宽度 +6、高度 +6',
+        weaponId: 'SCATTER_CANNON',
+        maxLevel: 2,
+        costPerLevel: [
+            { iron: 45, copper: 45 },  // Lv1
+            { gold: 5, iron: 55, copper: 55 }   // Lv2
+        ],
+        upgradePerLevel: {
+            bulletWidth: 6,   // 每级 +4 宽度
+            bulletHeight: 6   // 每级 +4 高度
+        }
+    }),
+    
+    SCATTER_CANNON_COOLDOWN: new TechUpgrade({
+        id: 'SCATTER_CANNON_COOLDOWN',
+        name: '散射机炮 - 自动化装弹技术',
+        description: '减少散射机炮冷却时间 -5s',
+        weaponId: 'SCATTER_CANNON',
+        maxLevel: 1,
+        costPerLevel: [
+            { gold: 20, iron: 70, copper: 70, nickel: 30, cobalt: 30 }  // Lv1 (消耗大量金矿和稀有资源)
+        ],
+        upgradePerLevel: {
+            cooldown: -5000  // -5s (-5000ms)
         }
     })
 };

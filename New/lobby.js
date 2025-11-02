@@ -37,6 +37,16 @@ class LobbySystem {
                 color: '#FF5722',
                 hoverColor: '#E64A19',
                 isHovered: false
+            },
+            armory: {
+                x: 0,
+                y: 0,
+                width: 200,
+                height: 60,
+                text: '军械库',
+                color: '#FF9800',
+                hoverColor: '#F57C00',
+                isHovered: false
             }
         };
         
@@ -75,6 +85,26 @@ class LobbySystem {
         this.levelSelectionData = {
             scrollOffset: 0,
             hoveredLevel: null
+        };
+        
+        // 军械库界面状态
+        this.showingArmory = false;
+        this.armoryData = {
+            scrollOffset: 0,
+            message: null,
+            messageTime: null,
+            messageType: 'success' // 'success' or 'error'
+        };
+        
+        // 装配强化界面状态
+        this.showingEquipment = false;
+        this.equipmentData = {
+            selectedSlot: null, // 当前选中的槽位键位
+            message: null,
+            messageTime: null,
+            messageType: 'success', // 'success' or 'error'
+            scrollOffset: 0, // 因子列表滚动偏移量
+            maxScroll: 0 // 最大滚动距离
         };
         
         // 计算按钮位置
@@ -118,6 +148,9 @@ class LobbySystem {
         
         this.buttons.techUpgrade.x = centerX - this.buttons.techUpgrade.width / 2;
         this.buttons.techUpgrade.y = startY + buttonSpacing * 2;
+        
+        this.buttons.armory.x = centerX - this.buttons.armory.width / 2;
+        this.buttons.armory.y = startY + buttonSpacing * 3;
     }
     
     // 处理鼠标移动
@@ -175,6 +208,18 @@ class LobbySystem {
             return;
         }
         
+        // 如果正在显示军械库界面
+        if (this.showingArmory) {
+            this.handleArmoryClick(mouseX, mouseY);
+            return;
+        }
+        
+        // 如果正在显示装配强化界面
+        if (this.showingEquipment) {
+            this.handleEquipmentClick(mouseX, mouseY);
+            return;
+        }
+        
         // 检查点击了哪个按钮
         if (this.isPointInButton(mouseX, mouseY, this.buttons.start)) {
             // 显示关卡选择界面
@@ -186,13 +231,16 @@ class LobbySystem {
         } else if (this.isPointInButton(mouseX, mouseY, this.buttons.techUpgrade)) {
             this.showingTechUpgrade = true;
             this.techUpgradeData.selectedWeapon = null;
+        } else if (this.isPointInButton(mouseX, mouseY, this.buttons.armory)) {
+            this.showingArmory = true;
+            this.armoryData.scrollOffset = 0;
         }
     }
     
     // 处理鼠标滚轮事件
     handleMouseWheel(event) {
-        // 在武器配置、科技升级或关卡选择界面处理滚轮
-        if (!this.showingWeaponConfig && !this.showingTechUpgrade && !this.showingLevelSelection) return;
+        // 在武器配置、科技升级、关卡选择、军械库或装备界面处理滚轮
+        if (!this.showingWeaponConfig && !this.showingTechUpgrade && !this.showingLevelSelection && !this.showingArmory && !this.showingEquipment) return;
         
         event.preventDefault();
         
@@ -205,6 +253,18 @@ class LobbySystem {
         // 科技升级界面的滚轮处理
         if (this.showingTechUpgrade) {
             this.handleTechUpgradeScroll(event);
+            return;
+        }
+        
+        // 军械库界面的滚轮处理
+        if (this.showingArmory) {
+            this.handleArmoryScroll(event);
+            return;
+        }
+        
+        // 装备界面的滚轮处理
+        if (this.showingEquipment) {
+            this.handleEquipmentScroll(event);
             return;
         }
         
@@ -299,6 +359,18 @@ class LobbySystem {
         // 如果显示科技升级界面
         if (this.showingTechUpgrade) {
             this.drawTechUpgradeScreen(ctx);
+            return;
+        }
+        
+        // 如果显示军械库界面
+        if (this.showingArmory) {
+            this.drawArmoryScreen(ctx);
+            return;
+        }
+        
+        // 如果显示装配强化界面
+        if (this.showingEquipment) {
+            this.drawEquipmentScreen(ctx);
             return;
         }
         
@@ -500,6 +572,20 @@ class LobbySystem {
                 
                 if (mouseX >= itemX && mouseX <= itemX + weaponItemWidth &&
                     relativeMouseY >= relativeItemY && relativeMouseY <= relativeItemY + weaponItemHeight) {
+                    
+                    // 检查武器是否已解锁
+                    if (!player.isWeaponUnlocked(weaponKey)) {
+                        // 武器未解锁，显示错误提示
+                        this.weaponConfigData.errorMessage = '武器未解锁，请前往科技升级界面解锁';
+                        this.weaponConfigData.errorTime = Date.now();
+                        
+                        // 播放错误音效
+                        if (typeof audioSystem !== 'undefined') {
+                            audioSystem.playButtonSound();
+                        }
+                        return;
+                    }
+                    
                     // 设置武器
                     const rowKey = rowKeys[rowIndex];
                     player.weaponLoadout[rowKey] = WeaponPresets[weaponKey];
@@ -636,30 +722,53 @@ class LobbySystem {
                 const itemX = panelX + 30 + col * (weaponItemWidth + weaponSpacing);
                 const itemY = contentStartY + currentY + row * (weaponItemHeight + weaponSpacing);
                 
+                // 检查武器是否已解锁
+                const isUnlocked = player.isWeaponUnlocked(weaponKey);
+                
                 // 检查是否是当前装备的武器
                 const isEquipped = currentWeapon && currentWeapon.name === weapon.name;
                 
-                // 武器卡片背景
-                ctx.fillStyle = isEquipped ? '#3a3a6e' : '#2a2a4e';
-                ctx.strokeStyle = isEquipped ? '#9C27B0' : '#444466';
+                // 武器卡片背景（未解锁时变暗）
+                if (!isUnlocked) {
+                    ctx.fillStyle = '#1a1a2e';
+                    ctx.strokeStyle = '#666666';
+                } else {
+                    ctx.fillStyle = isEquipped ? '#3a3a6e' : '#2a2a4e';
+                    ctx.strokeStyle = isEquipped ? '#9C27B0' : '#444466';
+                }
                 ctx.lineWidth = isEquipped ? 3 : 2;
                 this.roundRect(ctx, itemX, itemY, weaponItemWidth, weaponItemHeight, 8);
                 ctx.fill();
                 ctx.stroke();
                 
                 // 武器颜色条
-                ctx.fillStyle = weapon.color;
+                ctx.fillStyle = isUnlocked ? weapon.color : '#555555';
                 ctx.fillRect(itemX, itemY, weaponItemWidth, 6);
                 
+                // 未解锁时添加锁定图标和遮罩
+                if (!isUnlocked) {
+                    // 半透明遮罩
+                    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+                    this.roundRect(ctx, itemX, itemY + 6, weaponItemWidth, weaponItemHeight - 6, 8);
+                    ctx.fill();
+                    
+                    // 锁定图标
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = 'bold 32px Arial';
+                    ctx.textAlign = 'center';
+                    ctx.textBaseline = 'middle';
+                    ctx.fillText('🔒', itemX + weaponItemWidth / 2, itemY + weaponItemHeight / 2);
+                }
+                
                 // 武器名称
-                ctx.fillStyle = '#FFFFFF';
+                ctx.fillStyle = isUnlocked ? '#FFFFFF' : '#888888';
                 ctx.font = 'bold 16px Arial';
                 ctx.textAlign = 'left';
                 ctx.textBaseline = 'top';
                 ctx.fillText(weapon.name, itemX + 10, itemY + 12);
                 
                 // 装备标记
-                if (isEquipped) {
+                if (isEquipped && isUnlocked) {
                     ctx.fillStyle = '#9C27B0';
                     ctx.font = 'bold 12px Arial';
                     ctx.textAlign = 'right';
@@ -787,7 +896,7 @@ class LobbySystem {
         
         if (!this.techUpgradeData.selectedWeapon) {
             // 武器选择界面
-            const weaponCardHeight = 100;
+            const weaponCardHeight = 140; // 更新为新的高度
             const weaponSpacing = 15;
             const weaponsPerRow = 3;
             const weapons = Object.keys(WeaponPresets);
@@ -868,15 +977,20 @@ class LobbySystem {
     
     // 处理武器选择
     handleWeaponSelection(mouseX, mouseY, panelX, panelWidth, contentStartY) {
+        const player = window.game ? window.game.player : null;
+        if (!player) return;
+        
         const weapons = Object.keys(WeaponPresets);
         const weaponCardWidth = (panelWidth - 100) / 3;
-        const weaponCardHeight = 100;
+        const weaponCardHeight = 140; // 与绘制时保持一致
         const weaponSpacing = 15;
         const weaponsPerRow = 3;
         
         const relativeMouseY = mouseY - contentStartY;
         
         for (let i = 0; i < weapons.length; i++) {
+            const weaponKey = weapons[i];
+            const weapon = WeaponPresets[weaponKey];
             const col = i % weaponsPerRow;
             const row = Math.floor(i / weaponsPerRow);
             
@@ -885,11 +999,47 @@ class LobbySystem {
             
             if (mouseX >= cardX && mouseX <= cardX + weaponCardWidth &&
                 relativeMouseY >= cardY && relativeMouseY <= cardY + weaponCardHeight) {
-                this.techUpgradeData.selectedWeapon = weapons[i];
-                this.techUpgradeData.scrollOffset = 0;
                 
-                if (typeof audioSystem !== 'undefined') {
-                    audioSystem.playButtonSound();
+                const isUnlocked = player.isWeaponUnlocked(weaponKey);
+                
+                if (!isUnlocked) {
+                    // 点击了未解锁的武器，检查是否点击解锁按钮
+                    const buttonWidth = weaponCardWidth - 40;
+                    const buttonHeight = 30;
+                    const buttonX = cardX + 20;
+                    const buttonY = cardY + weaponCardHeight - 40;
+                    
+                    if (mouseX >= buttonX && mouseX <= buttonX + buttonWidth &&
+                        relativeMouseY >= buttonY && relativeMouseY <= buttonY + buttonHeight) {
+                        // 点击了解锁按钮
+                        const unlockCost = weapon.unlockCost || {};
+                        const result = player.unlockWeapon(weaponKey, unlockCost);
+                        
+                        if (result.success) {
+                            this.showTechMessage(`成功解锁 ${weapon.name}！`, 'success');
+                            
+                            if (typeof audioSystem !== 'undefined') {
+                                audioSystem.playButtonSound();
+                            }
+                        } else {
+                            this.showTechMessage(result.message, 'error');
+                            
+                            if (typeof audioSystem !== 'undefined') {
+                                audioSystem.playButtonSound();
+                            }
+                        }
+                    } else {
+                        // 点击了卡片其他区域
+                        this.showTechMessage('请先解锁该武器', 'error');
+                    }
+                } else {
+                    // 已解锁，选择该武器查看科技
+                    this.techUpgradeData.selectedWeapon = weaponKey;
+                    this.techUpgradeData.scrollOffset = 0;
+                    
+                    if (typeof audioSystem !== 'undefined') {
+                        audioSystem.playButtonSound();
+                    }
                 }
                 break;
             }
@@ -1071,9 +1221,12 @@ class LobbySystem {
     
     // 绘制武器选择
     drawWeaponSelection(ctx, panelX, panelWidth, contentStartY, techSystem) {
+        const player = window.game ? window.game.player : null;
+        if (!player) return;
+        
         const weapons = Object.keys(WeaponPresets);
         const weaponCardWidth = (panelWidth - 100) / 3;
-        const weaponCardHeight = 100;
+        const weaponCardHeight = 140; // 增加高度以容纳解锁按钮
         const weaponSpacing = 15;
         const weaponsPerRow = 3;
         
@@ -1086,40 +1239,101 @@ class LobbySystem {
             const cardX = panelX + 40 + col * (weaponCardWidth + weaponSpacing);
             const cardY = contentStartY - this.techUpgradeData.scrollOffset + row * (weaponCardHeight + weaponSpacing);
             
+            const isUnlocked = player.isWeaponUnlocked(weaponKey);
+            
             // 武器卡片背景
-            ctx.fillStyle = '#2a2a4e';
-            ctx.strokeStyle = weapon.color;
+            ctx.fillStyle = isUnlocked ? '#2a2a4e' : '#1a1a2e';
+            ctx.strokeStyle = isUnlocked ? weapon.color : '#666666';
             ctx.lineWidth = 2;
             this.roundRect(ctx, cardX, cardY, weaponCardWidth, weaponCardHeight, 8);
             ctx.fill();
             ctx.stroke();
             
             // 武器颜色条
-            ctx.fillStyle = weapon.color;
+            ctx.fillStyle = isUnlocked ? weapon.color : '#555555';
             ctx.fillRect(cardX, cardY, weaponCardWidth, 6);
             
             // 武器名称
-            ctx.fillStyle = '#FFFFFF';
+            ctx.fillStyle = isUnlocked ? '#FFFFFF' : '#888888';
             ctx.font = 'bold 18px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText(weapon.name, cardX + weaponCardWidth / 2, cardY + 35);
+            ctx.fillText(weapon.name, cardX + weaponCardWidth / 2, cardY + 30);
             
-            // 科技数量
-            const techs = techSystem.getWeaponTechs(weaponKey);
-            const upgradedCount = techs.filter(t => t.currentLevel > 0).length;
-            ctx.font = '14px Arial';
-            ctx.fillStyle = '#AAAAAA';
-            ctx.fillText(`${upgradedCount}/${techs.length} 已升级`, cardX + weaponCardWidth / 2, cardY + 60);
-            
-            // 最大等级进度
-            let totalLevel = 0;
-            let maxTotalLevel = 0;
-            techs.forEach(t => {
-                totalLevel += t.currentLevel;
-                maxTotalLevel += t.tech.maxLevel;
-            });
-            ctx.fillStyle = upgradedCount > 0 ? '#4CAF50' : '#666666';
-            ctx.fillText(`等级: ${totalLevel}/${maxTotalLevel}`, cardX + weaponCardWidth / 2, cardY + 82);
+            if (!isUnlocked) {
+                // 未解锁状态
+                const unlockCost = weapon.unlockCost || {};
+                const hasCost = Object.keys(unlockCost).length > 0;
+                
+                if (hasCost) {
+                    // 显示解锁消耗
+                    ctx.font = '12px Arial';
+                    ctx.fillStyle = '#AAAAAA';
+                    ctx.fillText('解锁消耗：', cardX + weaponCardWidth / 2, cardY + 55);
+                    
+                    const resourceNames = { iron: '铁', copper: '铜', cobalt: '钴', nickel: '镍', gold: '金' };
+                    let costText = [];
+                    for (const [type, amount] of Object.entries(unlockCost)) {
+                        if (amount > 0) {
+                            const hasEnough = player.resources[type] >= amount;
+                            costText.push(`${resourceNames[type]}:${amount}`);
+                        }
+                    }
+                    
+                    ctx.font = '13px Arial';
+                    ctx.fillStyle = '#FFD700';
+                    ctx.fillText(costText.join(' '), cardX + weaponCardWidth / 2, cardY + 75);
+                    
+                    // 绘制解锁按钮
+                    const buttonWidth = weaponCardWidth - 40;
+                    const buttonHeight = 30;
+                    const buttonX = cardX + 20;
+                    const buttonY = cardY + weaponCardHeight - 40;
+                    
+                    // 检查是否能解锁
+                    let canUnlock = true;
+                    for (const [type, amount] of Object.entries(unlockCost)) {
+                        if (player.resources[type] < amount) {
+                            canUnlock = false;
+                            break;
+                        }
+                    }
+                    
+                    ctx.fillStyle = canUnlock ? '#4CAF50' : '#666666';
+                    this.roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 5);
+                    ctx.fill();
+                    
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.font = 'bold 14px Arial';
+                    ctx.fillText(canUnlock ? '🔓 解锁武器' : '资源不足', cardX + weaponCardWidth / 2, buttonY + 19);
+                } else {
+                    // 免费武器，不应该出现这种情况
+                    ctx.font = '14px Arial';
+                    ctx.fillStyle = '#FF6B6B';
+                    ctx.fillText('错误：免费武器未解锁', cardX + weaponCardWidth / 2, cardY + 65);
+                }
+            } else {
+                // 已解锁，显示科技信息
+                const techs = techSystem.getWeaponTechs(weaponKey);
+                const upgradedCount = techs.filter(t => t.currentLevel > 0).length;
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#AAAAAA';
+                ctx.fillText(`${upgradedCount}/${techs.length} 已升级`, cardX + weaponCardWidth / 2, cardY + 60);
+                
+                // 最大等级进度
+                let totalLevel = 0;
+                let maxTotalLevel = 0;
+                techs.forEach(t => {
+                    totalLevel += t.currentLevel;
+                    maxTotalLevel += t.tech.maxLevel;
+                });
+                ctx.fillStyle = upgradedCount > 0 ? '#4CAF50' : '#666666';
+                ctx.fillText(`等级: ${totalLevel}/${maxTotalLevel}`, cardX + weaponCardWidth / 2, cardY + 82);
+                
+                // 点击查看科技按钮
+                ctx.font = 'bold 12px Arial';
+                ctx.fillStyle = '#FF5722';
+                ctx.fillText('点击查看科技 >', cardX + weaponCardWidth / 2, cardY + 110);
+            }
         }
     }
     
@@ -1714,12 +1928,927 @@ class LobbySystem {
         ctx.fill();
     }
     
+    // ===== 军械库界面相关方法 =====
+    
+    // 处理军械库滚轮
+    handleArmoryScroll(event) {
+        const scrollSpeed = 30;
+        this.armoryData.scrollOffset += event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
+        
+        // 计算最大滚动偏移
+        const maxScroll = this.calculateArmoryMaxScroll();
+        this.armoryData.scrollOffset = Math.max(0, Math.min(maxScroll, this.armoryData.scrollOffset));
+    }
+    
+    // 计算军械库界面的最大滚动偏移
+    calculateArmoryMaxScroll() {
+        const panelHeight = Math.min(700, this.canvas.height * 0.9);
+        const scrollAreaHeight = panelHeight - 200;
+        
+        // 安全检查：确保 EnhancementFactors 已加载
+        if (typeof EnhancementFactors === 'undefined') {
+            return 0;
+        }
+        
+        // 获取所有强化因子
+        const factors = Object.values(EnhancementFactors);
+        const cardHeight = 160;
+        const cardSpacing = 15;
+        const cardsPerRow = 2;
+        const numRows = Math.ceil(factors.length / cardsPerRow);
+        const totalHeight = numRows * (cardHeight + cardSpacing);
+        
+        return Math.max(0, totalHeight - scrollAreaHeight + 50);
+    }
+    
+    // 处理装备界面滚轮滚动
+    handleEquipmentScroll(event) {
+        // 只在选中了槽位且有内容可以滚动时处理
+        if (!this.equipmentData.selectedSlot || this.equipmentData.maxScroll <= 0) return;
+        
+        const scrollSpeed = 30;
+        this.equipmentData.scrollOffset += event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
+        
+        // 限制滚动范围
+        this.equipmentData.scrollOffset = Math.max(0, Math.min(this.equipmentData.maxScroll, this.equipmentData.scrollOffset));
+    }
+    
+    // 处理军械库点击
+    handleArmoryClick(mouseX, mouseY) {
+        const panelWidth = Math.min(900, this.canvas.width * 0.9);
+        const panelHeight = Math.min(700, this.canvas.height * 0.9);
+        const panelX = (this.canvas.width - panelWidth) / 2;
+        const panelY = (this.canvas.height - panelHeight) / 2;
+        
+        // 装配强化按钮
+        const equipButtonWidth = 140;
+        const equipButtonHeight = 40;
+        const equipButtonX = panelX + 20;
+        const equipButtonY = panelY + 20;
+        if (mouseX >= equipButtonX && mouseX <= equipButtonX + equipButtonWidth &&
+            mouseY >= equipButtonY && mouseY <= equipButtonY + equipButtonHeight) {
+            this.showingArmory = false;
+            this.showingEquipment = true;
+            this.equipmentData.selectedSlot = null;
+            return;
+        }
+        
+        // 关闭按钮
+        const closeButtonX = panelX + panelWidth - 50;
+        const closeButtonY = panelY + 10;
+        const closeButtonSize = 35;
+        if (mouseX >= closeButtonX && mouseX <= closeButtonX + closeButtonSize &&
+            mouseY >= closeButtonY && mouseY <= closeButtonY + closeButtonSize) {
+            this.showingArmory = false;
+            return;
+        }
+        
+        const player = window.game ? window.game.player : null;
+        if (!player) return;
+        
+        const contentStartY = panelY + 150;
+        const scrollAreaHeight = panelHeight - 200;
+        
+        if (mouseX < panelX + 20 || mouseX > panelX + panelWidth - 20 ||
+            mouseY < contentStartY || mouseY > contentStartY + scrollAreaHeight) {
+            return;
+        }
+        
+        // 处理锻造按钮点击
+        this.handleForgeAction(mouseX, mouseY, panelX, panelWidth, contentStartY, player);
+    }
+    
+    // 处理锻造操作
+    handleForgeAction(mouseX, mouseY, panelX, panelWidth, contentStartY, player) {
+        // 安全检查：确保 EnhancementFactors 已加载
+        if (typeof EnhancementFactors === 'undefined') {
+            return;
+        }
+        
+        const factors = Object.entries(EnhancementFactors);
+        const cardWidth = (panelWidth - 100) / 2;
+        const cardHeight = 160;
+        const cardSpacing = 15;
+        const cardsPerRow = 2;
+        const panelHeight = Math.min(700, this.canvas.height * 0.9);
+        const scrollAreaHeight = panelHeight - 200;
+        
+        const relativeMouseY = mouseY - contentStartY;
+        
+        for (let i = 0; i < factors.length; i++) {
+            const [factorId, factor] = factors[i];
+            const row = Math.floor(i / cardsPerRow);
+            const col = i % cardsPerRow;
+            
+            const cardX = panelX + 40 + col * (cardWidth + cardSpacing);
+            const cardY = row * (cardHeight + cardSpacing) - this.armoryData.scrollOffset;
+            
+            // 检查卡片是否在可见区域内
+            if (cardY + cardHeight < 0 || cardY > scrollAreaHeight) continue;
+            
+            const cardAbsoluteY = contentStartY + cardY;
+            
+            // 检查是否点击了锻造按钮
+            const forgeButtonX = cardX + 10;
+            const forgeButtonY = cardAbsoluteY + cardHeight - 45;
+            const forgeButtonWidth = cardWidth - 20;
+            const forgeButtonHeight = 35;
+            
+            if (mouseX >= forgeButtonX && mouseX <= forgeButtonX + forgeButtonWidth &&
+                mouseY >= forgeButtonY && mouseY <= forgeButtonY + forgeButtonHeight) {
+                
+                // 检查是否已拥有
+                if (player.hasEnhancement(factorId)) {
+                    this.showArmoryMessage('已拥有该强化因子', 'error');
+                    return;
+                }
+                
+                // 尝试锻造
+                const result = player.forgeEnhancement(factorId, factor.purchaseCost);
+                
+                if (result.success) {
+                    this.showArmoryMessage('锻造成功！', 'success');
+                    // 播放音效
+                    if (window.audioSystem) {
+                        window.audioSystem.playButtonSound();
+                    }
+                } else {
+                    this.showArmoryMessage(result.message, 'error');
+                }
+                
+                return;
+            }
+        }
+    }
+    
+    // 显示军械库消息
+    showArmoryMessage(message, type) {
+        this.armoryData.message = message;
+        this.armoryData.messageTime = Date.now();
+        this.armoryData.messageType = type;
+    }
+    
+    // 绘制军械库界面
+    drawArmoryScreen(ctx) {
+        // 半透明背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        const panelWidth = Math.min(900, this.canvas.width * 0.9);
+        const panelHeight = Math.min(700, this.canvas.height * 0.9);
+        const panelX = (this.canvas.width - panelWidth) / 2;
+        const panelY = (this.canvas.height - panelHeight) / 2;
+        
+        // 面板背景
+        ctx.fillStyle = '#1a1a3e';
+        ctx.strokeStyle = '#FF9800';
+        ctx.lineWidth = 3;
+        this.roundRect(ctx, panelX, panelY, panelWidth, panelHeight, 15);
+        ctx.fill();
+        ctx.stroke();
+        
+        // 标题
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FF9800';
+        ctx.fillText('军械库 - 锻造强化因子', this.canvas.width / 2, panelY + 40);
+        
+        // 装配强化按钮
+        const equipButtonWidth = 140;
+        const equipButtonHeight = 40;
+        const equipButtonX = panelX + 20;
+        const equipButtonY = panelY + 20;
+        ctx.fillStyle = '#4CAF50';
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        this.roundRect(ctx, equipButtonX, equipButtonY, equipButtonWidth, equipButtonHeight, 8);
+        ctx.fill();
+        ctx.stroke();
+        ctx.font = 'bold 16px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('装配强化', equipButtonX + equipButtonWidth / 2, equipButtonY + equipButtonHeight / 2 + 5);
+        
+        // 关闭按钮
+        ctx.fillStyle = '#FF5252';
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        const closeButtonX = panelX + panelWidth - 50;
+        const closeButtonY = panelY + 10;
+        const closeButtonSize = 35;
+        this.roundRect(ctx, closeButtonX, closeButtonY, closeButtonSize, closeButtonSize, 5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText('×', closeButtonX + closeButtonSize / 2, closeButtonY + closeButtonSize / 2 + 2);
+        
+        const player = window.game ? window.game.player : null;
+        
+        if (!player) {
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText('玩家数据未加载', this.canvas.width / 2, this.canvas.height / 2);
+            return;
+        }
+        
+        // 安全检查：确保 EnhancementFactors 已加载
+        if (typeof EnhancementFactors === 'undefined') {
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#FF5252';
+            ctx.fillText('错误：强化因子数据未加载', this.canvas.width / 2, this.canvas.height / 2);
+            ctx.font = '18px Arial';
+            ctx.fillText('请确保 slot.js 已正确加载', this.canvas.width / 2, this.canvas.height / 2 + 30);
+            return;
+        }
+        
+        // 绘制资源信息
+        this.drawResourceInfo(ctx, panelX, panelY, panelWidth, player);
+        
+        // 绘制滚动内容
+        const contentStartY = panelY + 150;
+        const scrollAreaHeight = panelHeight - 200;
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(panelX + 20, contentStartY, panelWidth - 40, scrollAreaHeight);
+        ctx.clip();
+        
+        this.drawEnhancementFactors(ctx, panelX, panelWidth, contentStartY, player);
+        
+        ctx.restore();
+        
+        // 绘制滚动条
+        this.drawArmoryScrollbar(ctx, panelX, panelWidth, contentStartY, scrollAreaHeight);
+        
+        // 显示消息提示
+        this.drawArmoryMessage(ctx, panelX, panelY, panelWidth, panelHeight);
+    }
+    
+    // 绘制强化因子列表
+    drawEnhancementFactors(ctx, panelX, panelWidth, contentStartY, player) {
+        // 安全检查：确保 EnhancementFactors 已加载
+        if (typeof EnhancementFactors === 'undefined') {
+            return;
+        }
+        
+        const factors = Object.entries(EnhancementFactors);
+        const cardWidth = (panelWidth - 100) / 2;
+        const cardHeight = 160;
+        const cardSpacing = 15;
+        const cardsPerRow = 2;
+        
+        for (let i = 0; i < factors.length; i++) {
+            const [factorId, factor] = factors[i];
+            const row = Math.floor(i / cardsPerRow);
+            const col = i % cardsPerRow;
+            
+            const cardX = panelX + 40 + col * (cardWidth + cardSpacing);
+            const cardY = contentStartY + row * (cardHeight + cardSpacing) - this.armoryData.scrollOffset;
+            
+            // 检查卡片是否在可见区域内
+            if (cardY + cardHeight < contentStartY || cardY > contentStartY + (this.canvas.height * 0.9 - 350)) continue;
+            
+            const isOwned = player.hasEnhancement(factorId);
+            
+            // 卡片背景
+            ctx.fillStyle = isOwned ? 'rgba(76, 175, 80, 0.2)' : 'rgba(50, 50, 80, 0.6)';
+            ctx.strokeStyle = isOwned ? '#4CAF50' : '#FF9800';
+            ctx.lineWidth = 2;
+            this.roundRect(ctx, cardX, cardY, cardWidth, cardHeight, 10);
+            ctx.fill();
+            ctx.stroke();
+            
+            // 因子名称
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText(factor.name, cardX + 10, cardY + 25);
+            
+            // 已拥有标记
+            if (isOwned) {
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillText('✓ 已拥有', cardX + cardWidth - 10, cardY + 25);
+            }
+            
+            // 因子描述
+            ctx.font = '14px Arial';
+            ctx.textAlign = 'left'; // 确保文本左对齐
+            ctx.fillStyle = '#CCCCCC';
+            this.wrapText(ctx, factor.description, cardX + 10, cardY + 50, cardWidth - 20, 18);
+            
+            // 消耗资源
+            ctx.font = 'bold 14px Arial';
+            ctx.fillStyle = '#FFD700';
+            const costText = this.formatCost(factor.purchaseCost);
+            ctx.fillText('消耗: ' + costText, cardX + 10, cardY + 95);
+            
+            // 锻造按钮
+            if (!isOwned) {
+                const canAfford = this.canAffordUpgrade(player, factor.purchaseCost);
+                ctx.fillStyle = canAfford ? '#FF9800' : '#666666';
+                ctx.strokeStyle = '#FFFFFF';
+                ctx.lineWidth = 2;
+                this.roundRect(ctx, cardX + 10, cardY + cardHeight - 45, cardWidth - 20, 35, 8);
+                ctx.fill();
+                ctx.stroke();
+                
+                ctx.font = 'bold 16px Arial';
+                ctx.textAlign = 'center';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText('锻造', cardX + cardWidth / 2, cardY + cardHeight - 20);
+            }
+        }
+    }
+    
+    // 自动换行文本
+    wrapText(ctx, text, x, y, maxWidth, lineHeight) {
+        const words = text.split('');
+        let line = '';
+        let currentY = y;
+        
+        for (let i = 0; i < words.length; i++) {
+            const testLine = line + words[i];
+            const metrics = ctx.measureText(testLine);
+            
+            if (metrics.width > maxWidth && i > 0) {
+                ctx.fillText(line, x, currentY);
+                line = words[i];
+                currentY += lineHeight;
+            } else {
+                line = testLine;
+            }
+        }
+        ctx.fillText(line, x, currentY);
+    }
+    
+    // 绘制滚动条
+    drawArmoryScrollbar(ctx, panelX, panelWidth, contentStartY, scrollAreaHeight) {
+        const maxScroll = this.calculateArmoryMaxScroll();
+        if (maxScroll <= 0) return;
+        
+        const scrollbarWidth = 8;
+        const scrollbarX = panelX + panelWidth - 25;
+        const totalContentHeight = scrollAreaHeight + maxScroll;
+        const scrollbarHeight = Math.max(30, (scrollAreaHeight / totalContentHeight) * scrollAreaHeight);
+        const scrollbarY = contentStartY + (this.armoryData.scrollOffset / maxScroll) * (scrollAreaHeight - scrollbarHeight);
+        
+        // 滚动条轨道
+        ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+        this.roundRect(ctx, scrollbarX, contentStartY, scrollbarWidth, scrollAreaHeight, 4);
+        ctx.fill();
+        
+        // 滚动条滑块
+        ctx.fillStyle = 'rgba(255, 152, 0, 0.8)';
+        this.roundRect(ctx, scrollbarX, scrollbarY, scrollbarWidth, scrollbarHeight, 4);
+        ctx.fill();
+    }
+    
+    // 绘制消息提示
+    drawArmoryMessage(ctx, panelX, panelY, panelWidth, panelHeight) {
+        if (!this.armoryData.message || !this.armoryData.messageTime) return;
+        
+        const elapsed = Date.now() - this.armoryData.messageTime;
+        if (elapsed >= 3000) {
+            this.armoryData.message = null;
+            this.armoryData.messageTime = null;
+            return;
+        }
+        
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 18px Arial';
+        
+        const messageBoxWidth = 400;
+        const messageBoxHeight = 50;
+        const messageBoxX = (this.canvas.width - messageBoxWidth) / 2;
+        const messageBoxY = panelY + panelHeight - 70;
+        
+        const bgColor = this.armoryData.messageType === 'success' ? 
+            'rgba(76, 175, 80, 0.95)' : 'rgba(244, 67, 54, 0.95)';
+        
+        ctx.fillStyle = bgColor;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        this.roundRect(ctx, messageBoxX, messageBoxY, messageBoxWidth, messageBoxHeight, 8);
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(this.armoryData.message, this.canvas.width / 2, messageBoxY + 30);
+        
+        ctx.restore();
+    }
+    
+    // ===== 装配强化界面相关方法 =====
+    
+    // 处理装配强化界面点击
+    handleEquipmentClick(mouseX, mouseY) {
+        const panelWidth = Math.min(1000, this.canvas.width * 0.95);
+        const panelHeight = Math.min(700, this.canvas.height * 0.9);
+        const panelX = (this.canvas.width - panelWidth) / 2;
+        const panelY = (this.canvas.height - panelHeight) / 2;
+        
+        // 关闭按钮
+        const closeButtonX = panelX + panelWidth - 50;
+        const closeButtonY = panelY + 10;
+        const closeButtonSize = 35;
+        if (mouseX >= closeButtonX && mouseX <= closeButtonX + closeButtonSize &&
+            mouseY >= closeButtonY && mouseY <= closeButtonY + closeButtonSize) {
+            this.showingEquipment = false;
+            this.equipmentData.selectedSlot = null;
+            return;
+        }
+        
+        const player = window.game ? window.game.player : null;
+        if (!player) return;
+        
+        // 左侧键盘槽位区域
+        const slotAreaWidth = panelWidth * 0.55;
+        const slotAreaX = panelX + 20;
+        const slotAreaY = panelY + 80;
+        const slotAreaHeight = panelHeight - 100;
+        
+        // 检查点击键位
+        const keys = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+        const keySize = 40;
+        const keySpacing = 8;
+        const rowOffsets = [0, 25, 50]; // 每排的偏移
+        
+        for (let row = 0; row < keys.length; row++) {
+            const rowKeys = keys[row];
+            const rowWidth = rowKeys.length * (keySize + keySpacing);
+            const startX = slotAreaX + (slotAreaWidth - rowWidth) / 2 + rowOffsets[row];
+            const keyY = slotAreaY + 100 + row * (keySize + keySpacing + 20);
+            
+            for (let i = 0; i < rowKeys.length; i++) {
+                const keyX = startX + i * (keySize + keySpacing);
+                if (mouseX >= keyX && mouseX <= keyX + keySize &&
+                    mouseY >= keyY && mouseY <= keyY + keySize) {
+                    const key = rowKeys[i];
+                    
+                    // 检查是否已达到5个槽位限制
+                    const equippedCount = player.getEquippedSlotCount();
+                    const currentlyEquipped = player.getSlotEnhancement(key) !== null;
+                    
+                    if (!currentlyEquipped && equippedCount >= 5) {
+                        this.showEquipmentMessage('最多只能装配5个槽位', 'error');
+                        return;
+                    }
+                    
+                    this.equipmentData.selectedSlot = key;
+                    this.equipmentData.scrollOffset = 0; // 切换槽位时重置滚动
+                    return;
+                }
+            }
+        }
+        
+        // 右侧强化因子列表区域
+        if (this.equipmentData.selectedSlot) {
+            const factorAreaX = slotAreaX + slotAreaWidth + 20;
+            const factorAreaWidth = panelWidth - slotAreaWidth - 60;
+            const factorAreaY = slotAreaY + 60;
+            
+            // 卸载按钮
+            const unequipButtonWidth = factorAreaWidth - 20;
+            const unequipButtonHeight = 40;
+            const unequipButtonX = factorAreaX + 10;
+            const unequipButtonY = factorAreaY;
+            
+            if (mouseX >= unequipButtonX && mouseX <= unequipButtonX + unequipButtonWidth &&
+                mouseY >= unequipButtonY && mouseY <= unequipButtonY + unequipButtonHeight) {
+                const result = player.unequipSlotEnhancement(this.equipmentData.selectedSlot);
+                this.showEquipmentMessage(result.message, result.success ? 'success' : 'error');
+                
+                // 卸载成功后重新初始化武器系统以应用变化
+                if (result.success && window.game && window.game.weaponSystem) {
+                    window.game.weaponSystem.initializeWeapons();
+                }
+                return;
+            }
+            
+            // 强化因子列表
+            const factorStartY = factorAreaY + 60;
+            const factorHeight = 80;
+            const factorSpacing = 10;
+            const ownedFactors = player.getOwnedEnhancements();
+            const listAreaHeight = panelHeight - slotAreaY - 120; // 可视区域高度
+            
+            for (let i = 0; i < ownedFactors.length; i++) {
+                const factorId = ownedFactors[i];
+                const factorY = factorStartY + i * (factorHeight + factorSpacing) - this.equipmentData.scrollOffset;
+                
+                // 检查是否在可视区域内
+                if (factorY + factorHeight < factorStartY || factorY > factorStartY + listAreaHeight) {
+                    continue; // 跳过不可见的项
+                }
+                
+                if (mouseX >= factorAreaX + 10 && mouseX <= factorAreaX + factorAreaWidth - 10 &&
+                    mouseY >= factorY && mouseY <= factorY + factorHeight) {
+                    const result = player.equipSlotEnhancement(this.equipmentData.selectedSlot, factorId);
+                    this.showEquipmentMessage(result.message, result.success ? 'success' : 'error');
+                    
+                    // 装配成功后重新初始化武器系统以应用变化
+                    if (result.success && window.game && window.game.weaponSystem) {
+                        window.game.weaponSystem.initializeWeapons();
+                    }
+                    return;
+                }
+            }
+        }
+    }
+    
+    // 显示装配强化消息
+    showEquipmentMessage(message, type) {
+        this.equipmentData.message = message;
+        this.equipmentData.messageTime = Date.now();
+        this.equipmentData.messageType = type;
+    }
+    
+    // 绘制装配强化界面
+    drawEquipmentScreen(ctx) {
+        // 半透明背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        const panelWidth = Math.min(1000, this.canvas.width * 0.95);
+        const panelHeight = Math.min(700, this.canvas.height * 0.9);
+        const panelX = (this.canvas.width - panelWidth) / 2;
+        const panelY = (this.canvas.height - panelHeight) / 2;
+        
+        // 面板背景
+        ctx.fillStyle = '#1a1a3e';
+        ctx.strokeStyle = '#4CAF50';
+        ctx.lineWidth = 3;
+        this.roundRect(ctx, panelX, panelY, panelWidth, panelHeight, 15);
+        ctx.fill();
+        ctx.stroke();
+        
+        // 标题
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillText('装配强化因子', this.canvas.width / 2, panelY + 40);
+        
+        // 关闭按钮
+        ctx.fillStyle = '#FF5252';
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        const closeButtonX = panelX + panelWidth - 50;
+        const closeButtonY = panelY + 10;
+        const closeButtonSize = 35;
+        this.roundRect(ctx, closeButtonX, closeButtonY, closeButtonSize, closeButtonSize, 5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText('×', closeButtonX + closeButtonSize / 2, closeButtonY + closeButtonSize / 2 + 2);
+        
+        const player = window.game ? window.game.player : null;
+        
+        if (!player) {
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillText('玩家数据未加载', this.canvas.width / 2, this.canvas.height / 2);
+            return;
+        }
+        
+        // 安全检查：确保 EnhancementFactors 已加载
+        if (typeof EnhancementFactors === 'undefined') {
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#FF5252';
+            ctx.fillText('错误：强化因子数据未加载', this.canvas.width / 2, this.canvas.height / 2);
+            return;
+        }
+        
+        // 显示装配数量信息
+        const equippedCount = player.getEquippedSlotCount();
+        ctx.font = 'bold 18px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = equippedCount >= 5 ? '#FF5252' : '#4CAF50';
+        ctx.fillText(`已装配: ${equippedCount}/5`, this.canvas.width / 2, panelY + 70);
+        
+        // 左侧：键盘槽位显示
+        const slotAreaWidth = panelWidth * 0.55;
+        const slotAreaX = panelX + 20;
+        const slotAreaY = panelY + 80;
+        const slotAreaHeight = panelHeight - 100;
+        
+        // 槽位区域背景
+        ctx.fillStyle = 'rgba(30, 30, 60, 0.6)';
+        this.roundRect(ctx, slotAreaX, slotAreaY, slotAreaWidth, slotAreaHeight, 10);
+        ctx.fill();
+        
+        // 绘制键盘槽位
+        this.drawKeyboardSlots(ctx, slotAreaX, slotAreaY, slotAreaWidth, player);
+        
+        // 右侧：强化因子列表
+        const factorAreaX = slotAreaX + slotAreaWidth + 20;
+        const factorAreaWidth = panelWidth - slotAreaWidth - 60;
+        const factorAreaY = slotAreaY;
+        
+        // 因子区域背景
+        ctx.fillStyle = 'rgba(30, 30, 60, 0.6)';
+        this.roundRect(ctx, factorAreaX, factorAreaY, factorAreaWidth, slotAreaHeight, 10);
+        ctx.fill();
+        
+        // 绘制强化因子列表
+        this.drawFactorList(ctx, factorAreaX, factorAreaY, factorAreaWidth, slotAreaHeight, player);
+        
+        // 显示消息提示
+        this.drawEquipmentMessage(ctx, panelX, panelY, panelWidth, panelHeight);
+    }
+    
+    // 绘制键盘槽位
+    drawKeyboardSlots(ctx, areaX, areaY, areaWidth, player) {
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('键位槽位', areaX + areaWidth / 2, areaY + 30);
+        
+        ctx.font = '14px Arial';
+        ctx.fillStyle = '#AAAAAA';
+        ctx.fillText('点击键位查看或更改强化因子', areaX + areaWidth / 2, areaY + 55);
+        
+        const keys = ['QWERTYUIOP', 'ASDFGHJKL', 'ZXCVBNM'];
+        const keySize = 40;
+        const keySpacing = 8;
+        const rowOffsets = [0, 25, 50]; // 每排的偏移，模拟键盘布局
+        
+        for (let row = 0; row < keys.length; row++) {
+            const rowKeys = keys[row];
+            const rowWidth = rowKeys.length * (keySize + keySpacing);
+            const startX = areaX + (areaWidth - rowWidth) / 2 + rowOffsets[row];
+            const keyY = areaY + 100 + row * (keySize + keySpacing + 20);
+            
+            for (let i = 0; i < rowKeys.length; i++) {
+                const key = rowKeys[i];
+                const keyX = startX + i * (keySize + keySpacing);
+                const equippedFactor = player.getSlotEnhancement(key);
+                const isSelected = this.equipmentData.selectedSlot === key;
+                
+                // 键位背景
+                if (equippedFactor) {
+                    ctx.fillStyle = isSelected ? '#2E7D32' : '#4CAF50';
+                } else {
+                    ctx.fillStyle = isSelected ? '#3a3a6e' : '#2a2a4e';
+                }
+                
+                ctx.strokeStyle = isSelected ? '#FFFFFF' : '#666666';
+                ctx.lineWidth = isSelected ? 3 : 2;
+                this.roundRect(ctx, keyX, keyY, keySize, keySize, 5);
+                ctx.fill();
+                ctx.stroke();
+                
+                // 键位字母
+                ctx.font = 'bold 18px Arial';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(key, keyX + keySize / 2, keyY + keySize / 2);
+                
+                // 已装配标记
+                if (equippedFactor) {
+                    ctx.fillStyle = '#FFD700';
+                    ctx.font = 'bold 12px Arial';
+                    ctx.fillText('✓', keyX + keySize - 8, keyY + 8);
+                }
+            }
+        }
+        
+        // 选中槽位的详细信息
+        if (this.equipmentData.selectedSlot) {
+            const selectedKey = this.equipmentData.selectedSlot;
+            const equippedFactorId = player.getSlotEnhancement(selectedKey);
+            
+            const infoY = areaY + 100 + 3 * (keySize + keySpacing + 20) + 20;
+            
+            ctx.fillStyle = 'rgba(50, 50, 80, 0.8)';
+            this.roundRect(ctx, areaX + 20, infoY, areaWidth - 40, 80, 8);
+            ctx.fill();
+            
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = '#FFD700';
+            ctx.fillText(`选中槽位: ${selectedKey}`, areaX + 30, infoY + 25);
+            
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#FFFFFF';
+            if (equippedFactorId) {
+                const factor = EnhancementFactors[equippedFactorId];
+                ctx.fillText(`当前强化: ${factor ? factor.name : '未知'}`, areaX + 30, infoY + 50);
+            } else {
+                ctx.fillStyle = '#AAAAAA';
+                ctx.fillText('当前强化: 未装配', areaX + 30, infoY + 50);
+            }
+        }
+    }
+    
+    // 绘制强化因子列表
+    drawFactorList(ctx, areaX, areaY, areaWidth, areaHeight, player) {
+        if (!this.equipmentData.selectedSlot) {
+            ctx.font = 'bold 18px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#AAAAAA';
+            ctx.fillText('← 请先选择一个键位', areaX + areaWidth / 2, areaY + areaHeight / 2);
+            return;
+        }
+        
+        ctx.font = 'bold 20px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('可用强化因子', areaX + areaWidth / 2, areaY + 30);
+        
+        // 卸载按钮
+        const unequipButtonWidth = areaWidth - 20;
+        const unequipButtonHeight = 40;
+        const unequipButtonX = areaX + 10;
+        const unequipButtonY = areaY + 50;
+        
+        const currentFactor = player.getSlotEnhancement(this.equipmentData.selectedSlot);
+        const canUnequip = currentFactor !== null;
+        
+        ctx.fillStyle = canUnequip ? '#FF5252' : '#555555';
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        this.roundRect(ctx, unequipButtonX, unequipButtonY, unequipButtonWidth, unequipButtonHeight, 8);
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.font = 'bold 16px Arial';
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText('卸载当前强化', unequipButtonX + unequipButtonWidth / 2, unequipButtonY + unequipButtonHeight / 2 + 5);
+        
+        // 强化因子列表
+        const factorStartY = areaY + 110;
+        const factorHeight = 80;
+        const factorSpacing = 10;
+        const ownedFactors = player.getOwnedEnhancements();
+        
+        if (ownedFactors.length === 0) {
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#AAAAAA';
+            ctx.fillText('暂无已锻造的强化因子', areaX + areaWidth / 2, factorStartY + 50);
+            ctx.fillText('请先在军械库锻造', areaX + areaWidth / 2, factorStartY + 75);
+            return;
+        }
+        
+        // 计算可视区域和总内容高度
+        const listAreaHeight = areaHeight - 120; // 可视区域高度
+        const totalContentHeight = ownedFactors.length * (factorHeight + factorSpacing);
+        this.equipmentData.maxScroll = Math.max(0, totalContentHeight - listAreaHeight);
+        
+        // 限制滚动范围
+        this.equipmentData.scrollOffset = Math.max(0, Math.min(this.equipmentData.scrollOffset, this.equipmentData.maxScroll));
+        
+        // 保存当前绘图状态并设置裁剪区域
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(areaX, factorStartY, areaWidth, listAreaHeight);
+        ctx.clip();
+        
+        for (let i = 0; i < ownedFactors.length; i++) {
+            const factorId = ownedFactors[i];
+            const factor = EnhancementFactors[factorId];
+            if (!factor) continue;
+            
+            const factorY = factorStartY + i * (factorHeight + factorSpacing) - this.equipmentData.scrollOffset;
+            
+            // 检查是否已装配到其他槽位
+            let equippedTo = null;
+            for (const [key, slotData] of Object.entries(player.slotEnhancements)) {
+                if (slotData && slotData.factorId === factorId) {
+                    equippedTo = key;
+                    break;
+                }
+            }
+            
+            const isEquippedHere = equippedTo === this.equipmentData.selectedSlot;
+            const isEquippedElsewhere = equippedTo && !isEquippedHere;
+            
+            // 因子卡片背景
+            if (isEquippedHere) {
+                ctx.fillStyle = 'rgba(76, 175, 80, 0.3)';
+                ctx.strokeStyle = '#4CAF50';
+            } else if (isEquippedElsewhere) {
+                ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+                ctx.strokeStyle = '#666666';
+            } else {
+                ctx.fillStyle = 'rgba(50, 50, 80, 0.8)';
+                ctx.strokeStyle = '#9C27B0';
+            }
+            
+            ctx.lineWidth = 2;
+            this.roundRect(ctx, areaX + 10, factorY, areaWidth - 20, factorHeight, 8);
+            ctx.fill();
+            ctx.stroke();
+            
+            // 因子名称
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = isEquippedElsewhere ? '#888888' : '#FFFFFF';
+            ctx.fillText(factor.name, areaX + 20, factorY + 22);
+            
+            // 装配状态
+            if (isEquippedHere) {
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#4CAF50';
+                ctx.fillText('✓ 已装配于此', areaX + areaWidth - 20, factorY + 22);
+            } else if (isEquippedElsewhere) {
+                ctx.font = 'bold 12px Arial';
+                ctx.textAlign = 'right';
+                ctx.fillStyle = '#FF9800';
+                ctx.fillText(`已装配于 ${equippedTo}`, areaX + areaWidth - 20, factorY + 22);
+            }
+            
+            // 因子描述
+            ctx.font = '13px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillStyle = isEquippedElsewhere ? '#666666' : '#CCCCCC';
+            ctx.fillText(factor.description, areaX + 20, factorY + 45);
+            
+            // 强化效果
+            ctx.font = 'bold 12px Arial';
+            ctx.fillStyle = isEquippedElsewhere ? '#888888' : '#FFD700';
+            const effectText = factor.getEffectDescription();
+            ctx.fillText(effectText, areaX + 20, factorY + 65);
+        }
+        
+        // 恢复绘图状态
+        ctx.restore();
+        
+        // 绘制滚动条（如果需要）
+        if (this.equipmentData.maxScroll > 0) {
+            const scrollBarWidth = 8;
+            const scrollBarX = areaX + areaWidth - scrollBarWidth - 5;
+            const scrollBarAreaY = factorStartY;
+            const scrollBarAreaHeight = listAreaHeight;
+            
+            // 滚动条背景
+            ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+            ctx.fillRect(scrollBarX, scrollBarAreaY, scrollBarWidth, scrollBarAreaHeight);
+            
+            // 滚动条滑块
+            const scrollBarHeight = Math.max(30, scrollBarAreaHeight * (listAreaHeight / totalContentHeight));
+            const scrollBarY = scrollBarAreaY + (this.equipmentData.scrollOffset / this.equipmentData.maxScroll) * (scrollBarAreaHeight - scrollBarHeight);
+            
+            ctx.fillStyle = 'rgba(200, 200, 200, 0.6)';
+            ctx.fillRect(scrollBarX, scrollBarY, scrollBarWidth, scrollBarHeight);
+        }
+    }
+    
+    // 绘制消息提示
+    drawEquipmentMessage(ctx, panelX, panelY, panelWidth, panelHeight) {
+        if (!this.equipmentData.message || !this.equipmentData.messageTime) return;
+        
+        const elapsed = Date.now() - this.equipmentData.messageTime;
+        if (elapsed >= 3000) {
+            this.equipmentData.message = null;
+            this.equipmentData.messageTime = null;
+            return;
+        }
+        
+        ctx.save();
+        ctx.textAlign = 'center';
+        ctx.font = 'bold 18px Arial';
+        
+        const messageBoxWidth = 400;
+        const messageBoxHeight = 50;
+        const messageBoxX = (this.canvas.width - messageBoxWidth) / 2;
+        const messageBoxY = panelY + panelHeight - 70;
+        
+        const bgColor = this.equipmentData.messageType === 'success' ? 
+            'rgba(76, 175, 80, 0.95)' : 'rgba(244, 67, 54, 0.95)';
+        
+        ctx.fillStyle = bgColor;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        this.roundRect(ctx, messageBoxX, messageBoxY, messageBoxWidth, messageBoxHeight, 8);
+        ctx.fill();
+        ctx.stroke();
+        
+        ctx.fillStyle = '#FFFFFF';
+        ctx.fillText(this.equipmentData.message, this.canvas.width / 2, messageBoxY + 30);
+        
+        ctx.restore();
+    }
+    
     // 激活大厅
     activate() {
         this.isActive = true;
         this.showingWeaponConfig = false;
         this.showingTechUpgrade = false;
         this.showingLevelSelection = false;
+        this.showingArmory = false;
+        this.showingEquipment = false;
         this.canvas.addEventListener('mousemove', this.boundMouseMove);
         this.canvas.addEventListener('click', this.boundMouseClick);
         this.canvas.addEventListener('wheel', this.boundMouseWheel);

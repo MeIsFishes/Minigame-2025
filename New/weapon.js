@@ -31,6 +31,7 @@ class WeaponData {
         this.lockOnTarget = config.lockOnTarget || false; // 是否锁定目标
         this.lockOnRange = config.lockOnRange || 0; // 索敌范围（像素，0表示不索敌）
         this.targetEffect = config.targetEffect || null; // 目标特效类型
+        this.unlockCost = config.unlockCost || {}; // 解锁资源消耗 { iron: 0, copper: 0, cobalt: 0, nickel: 0, gold: 0 }
     }
 }
 
@@ -64,7 +65,8 @@ const WeaponPresets = {
         color: '#FFD700',
         lockOnTarget: false,
         lockOnRange: 0,
-        targetEffect: null
+        targetEffect: null,
+        unlockCost: {} // 免费，初始拥有
     }),
     
     SHOTGUN: new WeaponData({
@@ -95,7 +97,8 @@ const WeaponPresets = {
         color: '#FFA500',
         lockOnTarget: false,
         lockOnRange: 0,
-        targetEffect: null
+        targetEffect: null,
+        unlockCost: {}
     }),
     
     SNIPER: new WeaponData({
@@ -126,7 +129,8 @@ const WeaponPresets = {
         color: '#4169E1',
         lockOnTarget: true,
         lockOnRange: 400,
-        targetEffect: 'lockon'
+        targetEffect: 'lockon',
+        unlockCost: {}
     }),
     
     MACHINE_GUN: new WeaponData({
@@ -137,7 +141,7 @@ const WeaponPresets = {
         fireDelay: 0,
         bulletsPerShot: 1,
         burstCount: 7,
-        burstInterval: 60,
+        burstInterval: 50,
         shootSound: 'machinegun',
         bulletWidth: 6,
         bulletHeight: 15,
@@ -149,26 +153,27 @@ const WeaponPresets = {
         bulletLifetime: 5000,
         fadeOut: false,
         bulletModel: 'standard',
-        centerSpreadAngle: 3,
-        bulletSpreadAngle: 5,
+        centerSpreadAngle: 0,
+        bulletSpreadAngle: 8,
         trackingAngularSpeed: 0,
         explosionRadius: 0,
         penetration: 1,
         color: '#FF6B6B',
         lockOnTarget: false,
         lockOnRange: 0,
-        targetEffect: null
+        targetEffect: null,
+        unlockCost: {}
     }),
     
     MISSILE: new WeaponData({
         id: 'MISSILE',
         name: '导弹',
         damage: 30,
-        cooldown: 80000,
+        cooldown: 40000,
         fireDelay: 0,
         bulletsPerShot: 1,
         burstCount: 1,
-        burstInterval: 100,
+        burstInterval: 1000,
         shootSound: 'missile',
         bulletWidth: 12,
         bulletHeight: 30,
@@ -183,12 +188,13 @@ const WeaponPresets = {
         centerSpreadAngle: 0,
         bulletSpreadAngle: 0,
         trackingAngularSpeed: 130,
-        explosionRadius: 280,
+        explosionRadius: 200,
         penetration: 1,
         color: '#FF4500',
         lockOnTarget: false,
         lockOnRange: 0,
-        targetEffect: null
+        targetEffect: null,
+        unlockCost: { iron: 100, copper: 100, cobalt: 10, nickel: 10 }
     }),
     
     PENETRATOR: new WeaponData({
@@ -219,7 +225,40 @@ const WeaponPresets = {
         color: '#00CED1',
         lockOnTarget: false,
         lockOnRange: 0,
-        targetEffect: null
+        targetEffect: null,
+        unlockCost: { iron: 100, copper: 100 }
+    }),
+    
+    SCATTER_CANNON: new WeaponData({
+        id: 'SCATTER_CANNON',
+        name: '散射机炮',
+        damage: 2,
+        cooldown: 30000,
+        fireDelay: 0,
+        bulletsPerShot: 7,
+        burstCount: 3,
+        burstInterval: 300,
+        shootSound: 'SCATTER_CANNON',
+        bulletWidth: 16,
+        bulletHeight: 16,
+        bulletSpeed: 3000,
+        bulletAcceleration: -6000,
+        bulletMinSpeed: 100,
+        bulletMaxSpeed: 0,
+        enableSpeedLimit: true,
+        bulletLifetime: 450,
+        fadeOut: true,
+        bulletModel: 'round',
+        centerSpreadAngle: 10,
+        bulletSpreadAngle: 120,
+        trackingAngularSpeed: 0,
+        explosionRadius: 0,
+        penetration: 2,
+        color: '#FF00FF',
+        lockOnTarget: false,
+        lockOnRange: 0,
+        targetEffect: null,
+        unlockCost: { gold: 15 }
     })
 };
 
@@ -274,6 +313,18 @@ class WeaponSystem {
                         weaponPreset = this.techSystem.applyUpgradesToWeapon(weaponPreset);
                     }
                     
+                    // 应用槽位强化因子（在科技升级之后）
+                    if (typeof EnhancementFactors !== 'undefined') {
+                        const slotData = this.player.getSlotEnhancementData(key);
+                        if (slotData) {
+                            const factor = EnhancementFactors[slotData.factorId];
+                            if (factor) {
+                                // 应用强化因子的加成，使用存储的实际数值
+                                weaponPreset = this.applyEnhancementToWeapon(weaponPreset, factor, slotData.appliedValues);
+                            }
+                        }
+                    }
+                    
                     this.keyWeapons[key] = weaponPreset;
                 } else {
                     // 默认所有键位使用基础机枪
@@ -281,6 +332,80 @@ class WeaponSystem {
                 }
             });
         });
+    }
+    
+    // 应用强化因子到武器（返回强化后的武器副本）
+    applyEnhancementToWeapon(weaponData, factor, appliedValues = {}) {
+        if (!factor || !weaponData) return weaponData;
+        
+        // 创建武器数据的副本
+        const enhanced = new WeaponData({
+            id: weaponData.id,
+            name: weaponData.name,
+            damage: weaponData.damage,
+            cooldown: weaponData.cooldown,
+            fireDelay: weaponData.fireDelay,
+            bulletsPerShot: weaponData.bulletsPerShot,
+            burstCount: weaponData.burstCount,
+            burstInterval: weaponData.burstInterval,
+            shootSound: weaponData.shootSound,
+            bulletWidth: weaponData.bulletWidth,
+            bulletHeight: weaponData.bulletHeight,
+            bulletSpeed: weaponData.bulletSpeed,
+            bulletAcceleration: weaponData.bulletAcceleration,
+            bulletMinSpeed: weaponData.bulletMinSpeed,
+            bulletMaxSpeed: weaponData.bulletMaxSpeed,
+            enableSpeedLimit: weaponData.enableSpeedLimit,
+            bulletLifetime: weaponData.bulletLifetime,
+            fadeOut: weaponData.fadeOut,
+            bulletModel: weaponData.bulletModel,
+            centerSpreadAngle: weaponData.centerSpreadAngle,
+            bulletSpreadAngle: weaponData.bulletSpreadAngle,
+            trackingAngularSpeed: weaponData.trackingAngularSpeed,
+            explosionRadius: weaponData.explosionRadius,
+            penetration: weaponData.penetration,
+            color: weaponData.color,
+            lockOnTarget: weaponData.lockOnTarget,
+            lockOnRange: weaponData.lockOnRange,
+            targetEffect: weaponData.targetEffect,
+            unlockCost: weaponData.unlockCost
+        });
+        
+        // 优先使用存储的实际应用数值（避免精度问题）
+        for (const [prop, value] of Object.entries(appliedValues)) {
+            if (enhanced.hasOwnProperty(prop) && typeof enhanced[prop] === 'number') {
+                enhanced[prop] += value;
+                
+                // 确保某些属性不会变成负数或过小
+                if (prop === 'damage' || prop === 'penetration' || 
+                    prop === 'bulletsPerShot' || prop === 'burstCount') {
+                    enhanced[prop] = Math.max(1, enhanced[prop]);
+                }
+                if (prop === 'cooldown') {
+                    enhanced[prop] = Math.max(100, enhanced[prop]);
+                }
+            }
+        }
+        
+        // 应用强化因子的绝对值加成
+        for (const [prop, value] of Object.entries(factor.enhancements)) {
+            if (enhanced.hasOwnProperty(prop) && typeof enhanced[prop] === 'number') {
+                enhanced[prop] += value;
+                
+                // 确保某些属性不会变成负数
+                if (prop === 'damage' || prop === 'penetration' || 
+                    prop === 'bulletsPerShot' || prop === 'burstCount') {
+                    enhanced[prop] = Math.max(1, enhanced[prop]);
+                }
+                if (prop === 'cooldown') {
+                    enhanced[prop] = Math.max(100, enhanced[prop]);
+                }
+            } else if (typeof value === 'boolean') {
+                enhanced[prop] = value;
+            }
+        }
+        
+        return enhanced;
     }
     
     // 为指定键位设置武器
@@ -405,14 +530,28 @@ class WeaponSystem {
         
         // lockedTarget 从 shoot 方法传入（已经在按键瞬间完成索敌）
         
+        // 应用默认值逻辑
+        // 1. 若武器每轮射击间隔为0，则应用300ms
+        const actualBurstInterval = weapon.burstInterval === 0 ? 300 : weapon.burstInterval;
+        
+        // 2. 若武器每轮发射子弹数大于1，但扩散角为0，则应用10度扩散角
+        const actualBulletSpreadAngle = (weapon.bulletsPerShot > 1 && weapon.bulletSpreadAngle === 0) 
+            ? 10 
+            : weapon.bulletSpreadAngle;
+        
         for (let burst = 0; burst < weapon.burstCount; burst++) {
             setTimeout(() => {
+                // 播放武器发射音效
+                if (window.audioSystem) {
+                    window.audioSystem.playWeaponSound(weapon.shootSound);
+                }
+                
                 // 如果有锁定目标，使用锁定目标的位置（即使目标已死亡）
                 let initialAngle = 0;
                 let targetForBullet = null;
                 
                 if (lockedTarget && weapon.lockOnTarget) {
-                    // 计算到目标的角度
+                    // 计算到目标的角度（散射中轴固定指向目标）
                     const targetX = lockedTarget.x + (lockedTarget.width || 0) / 2;
                     const targetY = lockedTarget.y + (lockedTarget.height || 0) / 2;
                     const dx = targetX - x;
@@ -423,8 +562,30 @@ class WeaponSystem {
                     if (lockedTarget.isAlive && lockedTarget.health > 0) {
                         targetForBullet = lockedTarget;
                     }
+                } else if (weapon.lockOnRange > 0) {
+                    // 武器启用索敌但未锁定目标，尝试寻找范围内的目标
+                    const rangeTarget = this.findTargetInRange(x, y, weapon.lockOnRange, enemySystem);
+                    if (rangeTarget) {
+                        // 找到目标，散射中轴指向目标
+                        const targetX = rangeTarget.x + (rangeTarget.width || 0) / 2;
+                        const targetY = rangeTarget.y + (rangeTarget.height || 0) / 2;
+                        const dx = targetX - x;
+                        const dy = targetY - y;
+                        initialAngle = Math.atan2(dx, -dy) * 180 / Math.PI;
+                        
+                        // 设为追踪目标
+                        if (rangeTarget.isAlive && rangeTarget.health > 0) {
+                            targetForBullet = rangeTarget;
+                        }
+                    } else {
+                        // 未找到目标，使用随机散射角
+                        initialAngle = this.randomInRange(
+                            -weapon.centerSpreadAngle / 2,
+                            weapon.centerSpreadAngle / 2
+                        );
+                    }
                 } else {
-                    // 没有锁定目标，使用散射角
+                    // 没有启用索敌，使用随机散射角
                     initialAngle = this.randomInRange(
                         -weapon.centerSpreadAngle / 2,
                         weapon.centerSpreadAngle / 2
@@ -436,10 +597,10 @@ class WeaponSystem {
                 
                 // 发射多发子弹
                 for (let i = 0; i < weapon.bulletsPerShot; i++) {
-                    // 计算子弹散射角
+                    // 计算子弹散射角（使用实际扩散角）
                     const bulletAngle = initialAngle + this.randomInRange(
-                        -weapon.bulletSpreadAngle / 2,
-                        weapon.bulletSpreadAngle / 2
+                        -actualBulletSpreadAngle / 2,
+                        actualBulletSpreadAngle / 2
                     );
                     
                     // 创建子弹
@@ -481,7 +642,7 @@ class WeaponSystem {
                     
                     this.bullets.push(newBullet);
                 }
-            }, burst * weapon.burstInterval);
+            }, burst * actualBurstInterval);
         }
     }
     
