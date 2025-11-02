@@ -37,26 +37,6 @@ class LobbySystem {
                 color: '#FF5722',
                 hoverColor: '#E64A19',
                 isHovered: false
-            },
-            help: {
-                x: 0,
-                y: 0,
-                width: 200,
-                height: 60,
-                text: '游戏说明',
-                color: '#2196F3',
-                hoverColor: '#1976D2',
-                isHovered: false
-            },
-            settings: {
-                x: 0,
-                y: 0,
-                width: 200,
-                height: 60,
-                text: '设置',
-                color: '#FF9800',
-                hoverColor: '#F57C00',
-                isHovered: false
             }
         };
         
@@ -70,9 +50,6 @@ class LobbySystem {
         // 粒子背景
         this.particles = [];
         this.initParticles();
-        
-        // 帮助界面状态
-        this.showingHelp = false;
         
         // 武器配置界面状态
         this.showingWeaponConfig = false;
@@ -91,6 +68,13 @@ class LobbySystem {
             message: null,
             messageTime: null,
             messageType: 'success' // 'success' or 'error'
+        };
+        
+        // 关卡选择界面状态
+        this.showingLevelSelection = false;
+        this.levelSelectionData = {
+            scrollOffset: 0,
+            hoveredLevel: null
         };
         
         // 计算按钮位置
@@ -134,12 +118,6 @@ class LobbySystem {
         
         this.buttons.techUpgrade.x = centerX - this.buttons.techUpgrade.width / 2;
         this.buttons.techUpgrade.y = startY + buttonSpacing * 2;
-        
-        this.buttons.help.x = centerX - this.buttons.help.width / 2;
-        this.buttons.help.y = startY + buttonSpacing * 3;
-        
-        this.buttons.settings.x = centerX - this.buttons.settings.width / 2;
-        this.buttons.settings.y = startY + buttonSpacing * 4;
     }
     
     // 处理鼠标移动
@@ -151,7 +129,7 @@ class LobbySystem {
         const mouseY = event.clientY - rect.top;
         
         // 如果在特殊界面，显示指针
-        if (this.showingWeaponConfig || this.showingHelp || this.showingTechUpgrade) {
+        if (this.showingWeaponConfig || this.showingTechUpgrade) {
             this.canvas.style.cursor = 'pointer';
             
             // 如果在科技升级界面，处理悬停
@@ -179,9 +157,9 @@ class LobbySystem {
         const mouseX = event.clientX - rect.left;
         const mouseY = event.clientY - rect.top;
         
-        // 如果正在显示帮助界面，点击任意位置关闭
-        if (this.showingHelp) {
-            this.showingHelp = false;
+        // 如果正在显示关卡选择界面
+        if (this.showingLevelSelection) {
+            this.handleLevelSelectionClick(mouseX, mouseY);
             return;
         }
         
@@ -199,26 +177,30 @@ class LobbySystem {
         
         // 检查点击了哪个按钮
         if (this.isPointInButton(mouseX, mouseY, this.buttons.start)) {
-            this.onStartGame();
+            // 显示关卡选择界面
+            this.showingLevelSelection = true;
+            this.levelSelectionData.scrollOffset = 0;
         } else if (this.isPointInButton(mouseX, mouseY, this.buttons.weaponConfig)) {
             this.showingWeaponConfig = true;
             this.weaponConfigData.selectedRow = null;
         } else if (this.isPointInButton(mouseX, mouseY, this.buttons.techUpgrade)) {
             this.showingTechUpgrade = true;
             this.techUpgradeData.selectedWeapon = null;
-        } else if (this.isPointInButton(mouseX, mouseY, this.buttons.help)) {
-            this.showingHelp = true;
-        } else if (this.isPointInButton(mouseX, mouseY, this.buttons.settings)) {
-            this.onSettings();
         }
     }
     
     // 处理鼠标滚轮事件
     handleMouseWheel(event) {
-        // 在武器配置或科技升级界面处理滚轮
-        if (!this.showingWeaponConfig && !this.showingTechUpgrade) return;
+        // 在武器配置、科技升级或关卡选择界面处理滚轮
+        if (!this.showingWeaponConfig && !this.showingTechUpgrade && !this.showingLevelSelection) return;
         
         event.preventDefault();
+        
+        // 关卡选择界面的滚轮处理
+        if (this.showingLevelSelection) {
+            this.handleLevelSelectionScroll(event);
+            return;
+        }
         
         // 科技升级界面的滚轮处理
         if (this.showingTechUpgrade) {
@@ -262,12 +244,6 @@ class LobbySystem {
         // 这个方法会被外部覆盖
     }
     
-    // 设置回调（由外部设置）
-    onSettings() {
-        console.log('打开设置');
-        // 这个方法会被外部覆盖
-    }
-    
     // 更新动画
     update(deltaTime) {
         if (!this.isActive) return;
@@ -308,9 +284,9 @@ class LobbySystem {
         // 绘制粒子背景
         this.drawParticles(ctx);
         
-        // 如果显示帮助界面
-        if (this.showingHelp) {
-            this.drawHelpScreen(ctx);
+        // 如果显示关卡选择界面
+        if (this.showingLevelSelection) {
+            this.drawLevelSelectionScreen(ctx);
             return;
         }
         
@@ -438,68 +414,6 @@ class LobbySystem {
         ctx.textAlign = 'right';
         ctx.fillStyle = '#666666';
         ctx.fillText('v1.0.0', this.canvas.width - 20, this.canvas.height - 20);
-    }
-    
-    // 绘制帮助界面
-    drawHelpScreen(ctx) {
-        // 半透明背景
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.8)';
-        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        
-        // 帮助面板
-        const panelWidth = Math.min(600, this.canvas.width * 0.8);
-        const panelHeight = Math.min(500, this.canvas.height * 0.8);
-        const panelX = (this.canvas.width - panelWidth) / 2;
-        const panelY = (this.canvas.height - panelHeight) / 2;
-        
-        // 面板背景
-        ctx.fillStyle = '#1a1a3e';
-        ctx.strokeStyle = '#00FFFF';
-        ctx.lineWidth = 3;
-        this.roundRect(ctx, panelX, panelY, panelWidth, panelHeight, 15);
-        ctx.fill();
-        ctx.stroke();
-        
-        // 标题
-        ctx.font = 'bold 32px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#00FFFF';
-        ctx.fillText('游戏说明', this.canvas.width / 2, panelY + 50);
-        
-        // 说明内容
-        ctx.font = '20px Arial';
-        ctx.textAlign = 'left';
-        ctx.fillStyle = '#FFFFFF';
-        
-        const instructions = [
-            '游戏规则：',
-            '• 使用键盘上的 Q-P、A-L、Z-M 键发射武器',
-            '• 每个按键对应一个武器位置',
-            '• 击败敌机获得分数',
-            '• 部分敌机被击败后会回复生命值',
-            '',
-            '敌机类型：',
-            '• 基础战机：1血，10分',
-            '• 快速战机：1血，15分，移动快速',
-            '• 重型战机：3血，30分，回血+1',
-            '• BOSS战机：10血，100分，回血+5',
-            '',
-            '武器类型：',
-            '• 速射炮：基础武器，快速射击',
-            '• 霰弹枪：散射多发子弹',
-            '• 狙击枪：高伤害，穿透3个敌机，自动索敌',
-            '',
-            '点击任意位置返回'
-        ];
-        
-        let textY = panelY + 100;
-        instructions.forEach(line => {
-            const fontSize = line.startsWith('•') ? 18 : 20;
-            const isBold = !line.startsWith('•');
-            ctx.font = isBold ? 'bold 20px Arial' : '18px Arial';
-            ctx.fillText(line, panelX + 40, textY);
-            textY += fontSize === 20 ? 28 : 24;
-        });
     }
     
     // 处理武器配置界面点击
@@ -1421,12 +1335,359 @@ class LobbySystem {
         ctx.restore();
     }
     
+    // ===== 关卡选择界面相关方法 =====
+    
+    // 处理关卡选择滚轮
+    handleLevelSelectionScroll(event) {
+        const scrollSpeed = 30;
+        this.levelSelectionData.scrollOffset += event.deltaY > 0 ? scrollSpeed : -scrollSpeed;
+        
+        // 计算最大滚动偏移
+        const maxScroll = this.calculateLevelSelectionMaxScroll();
+        this.levelSelectionData.scrollOffset = Math.max(0, Math.min(maxScroll, this.levelSelectionData.scrollOffset));
+    }
+    
+    // 计算关卡选择界面的最大滚动偏移
+    calculateLevelSelectionMaxScroll() {
+        const panelHeight = Math.min(700, this.canvas.height * 0.9);
+        const scrollAreaHeight = panelHeight - 120;
+        
+        const levelSystem = window.game && window.game.levelSystem ? window.game.levelSystem : null;
+        if (!levelSystem) return 0;
+        
+        const levels = levelSystem.getAllLevels();
+        const levelCardHeight = 200;
+        const levelSpacing = 20;
+        const totalHeight = levels.length * (levelCardHeight + levelSpacing);
+        
+        return Math.max(0, totalHeight - scrollAreaHeight + 50);
+    }
+    
+    // 处理关卡选择点击
+    handleLevelSelectionClick(mouseX, mouseY) {
+        const panelWidth = Math.min(900, this.canvas.width * 0.9);
+        const panelHeight = Math.min(700, this.canvas.height * 0.9);
+        const panelX = (this.canvas.width - panelWidth) / 2;
+        const panelY = (this.canvas.height - panelHeight) / 2;
+        
+        // 关闭按钮
+        const closeButtonX = panelX + panelWidth - 50;
+        const closeButtonY = panelY + 10;
+        const closeButtonSize = 35;
+        if (mouseX >= closeButtonX && mouseX <= closeButtonX + closeButtonSize &&
+            mouseY >= closeButtonY && mouseY <= closeButtonY + closeButtonSize) {
+            this.showingLevelSelection = false;
+            return;
+        }
+        
+        const levelSystem = window.game && window.game.levelSystem ? window.game.levelSystem : null;
+        if (!levelSystem) return;
+        
+        const contentStartY = panelY + 100;
+        const scrollAreaHeight = panelHeight - 120;
+        
+        if (mouseX < panelX + 20 || mouseX > panelX + panelWidth - 20 ||
+            mouseY < contentStartY || mouseY > contentStartY + scrollAreaHeight) {
+            return;
+        }
+        
+        const levels = levelSystem.getAllLevels();
+        const levelCardHeight = 200;
+        const levelSpacing = 20;
+        const levelCardWidth = panelWidth - 80;
+        
+        const relativeMouseY = mouseY - contentStartY;
+        
+        for (let i = 0; i < levels.length; i++) {
+            const cardY = -this.levelSelectionData.scrollOffset + i * (levelCardHeight + levelSpacing);
+            const cardX = panelX + 40;
+            
+            // 计算"进入"按钮的位置
+            const buttonWidth = 120;
+            const buttonHeight = 40;
+            const buttonX = cardX + levelCardWidth - buttonWidth - 20;
+            const buttonY = cardY + levelCardHeight - buttonHeight - 15;
+            
+            // 检查鼠标是否点击了按钮（使用相对坐标）
+            if (mouseX >= buttonX && mouseX <= buttonX + buttonWidth &&
+                relativeMouseY >= buttonY && relativeMouseY <= buttonY + buttonHeight) {
+                
+                // 选中关卡，开始游戏
+                this.showingLevelSelection = false;
+                if (this.onStartGame) {
+                    // 传递关卡ID给游戏系统
+                    this.selectedLevelId = levels[i].id;
+                    this.onStartGame(levels[i].id);
+                }
+                
+                if (typeof audioSystem !== 'undefined') {
+                    audioSystem.playButtonSound();
+                }
+                break;
+            }
+        }
+    }
+    
+    // 绘制关卡选择界面
+    drawLevelSelectionScreen(ctx) {
+        // 半透明背景
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        const panelWidth = Math.min(900, this.canvas.width * 0.9);
+        const panelHeight = Math.min(700, this.canvas.height * 0.9);
+        const panelX = (this.canvas.width - panelWidth) / 2;
+        const panelY = (this.canvas.height - panelHeight) / 2;
+        
+        // 面板背景
+        ctx.fillStyle = '#1a1a3e';
+        ctx.strokeStyle = '#4CAF50';
+        ctx.lineWidth = 3;
+        this.roundRect(ctx, panelX, panelY, panelWidth, panelHeight, 15);
+        ctx.fill();
+        ctx.stroke();
+        
+        // 标题
+        ctx.font = 'bold 32px Arial';
+        ctx.textAlign = 'center';
+        ctx.fillStyle = '#4CAF50';
+        ctx.fillText('选择关卡', this.canvas.width / 2, panelY + 40);
+        
+        // 关闭按钮
+        ctx.fillStyle = '#FF5252';
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        const closeButtonX = panelX + panelWidth - 50;
+        const closeButtonY = panelY + 10;
+        const closeButtonSize = 35;
+        this.roundRect(ctx, closeButtonX, closeButtonY, closeButtonSize, closeButtonSize, 5);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#FFFFFF';
+        ctx.font = 'bold 24px Arial';
+        ctx.fillText('×', closeButtonX + closeButtonSize / 2, closeButtonY + closeButtonSize / 2 + 2);
+        
+        const levelSystem = window.game && window.game.levelSystem ? window.game.levelSystem : null;
+        
+        if (!levelSystem) {
+            ctx.font = '20px Arial';
+            ctx.fillStyle = '#FF5252';
+            ctx.textAlign = 'center';
+            ctx.fillText('关卡系统未加载', this.canvas.width / 2, panelY + 200);
+            return;
+        }
+        
+        // 绘制滚动内容
+        const contentStartY = panelY + 100;
+        const scrollAreaHeight = panelHeight - 120;
+        
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(panelX + 20, contentStartY, panelWidth - 40, scrollAreaHeight);
+        ctx.clip();
+        
+        this.drawLevelCards(ctx, panelX, panelWidth, contentStartY, levelSystem);
+        
+        ctx.restore();
+        
+        // 绘制滚动条
+        this.drawLevelSelectionScrollbar(ctx, panelX, panelWidth, contentStartY, scrollAreaHeight);
+    }
+    
+    // 绘制关卡卡片
+    drawLevelCards(ctx, panelX, panelWidth, contentStartY, levelSystem) {
+        const levels = levelSystem.getAllLevels();
+        const levelCardHeight = 200;
+        const levelSpacing = 20;
+        const levelCardWidth = panelWidth - 80;
+        
+        for (let i = 0; i < levels.length; i++) {
+            const level = levels[i];
+            const cardY = contentStartY - this.levelSelectionData.scrollOffset + i * (levelCardHeight + levelSpacing);
+            const cardX = panelX + 40;
+            
+            // 关卡卡片背景
+            ctx.fillStyle = '#2a2a4e';
+            ctx.strokeStyle = '#4CAF50';
+            ctx.lineWidth = 2;
+            this.roundRect(ctx, cardX, cardY, levelCardWidth, levelCardHeight, 10);
+            ctx.fill();
+            ctx.stroke();
+            
+            // 顶部装饰条
+            ctx.fillStyle = '#4CAF50';
+            ctx.fillRect(cardX, cardY, levelCardWidth, 8);
+            
+            // 关卡名称（字号大一点）
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 26px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(level.name, cardX + 20, cardY + 40);
+            
+            // 难度星级（在名称右侧）
+            const stars = '⭐'.repeat(level.difficulty);
+            ctx.fillStyle = '#FFD700';
+            ctx.font = 'bold 22px Arial';
+            ctx.textAlign = 'right';
+            ctx.fillText(stars, cardX + levelCardWidth - 20, cardY + 40);
+            
+            // 关卡描述
+            ctx.fillStyle = '#CCCCCC';
+            ctx.font = '16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText(level.description, cardX + 20, cardY + 70);
+            
+            // 关卡持续时间
+            const duration = (level.duration / 1000).toFixed(0);
+            ctx.fillStyle = '#AAAAAA';
+            ctx.font = '15px Arial';
+            ctx.fillText(`⏱️ 持续时间: ${duration}秒`, cardX + 20, cardY + 100);
+            
+            // 敌机类型
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('🛸 敌机类型:', cardX + 20, cardY + 125);
+            
+            // 获取关卡数据以读取enemyTypes
+            const levelData = LevelPresets[level.id];
+            if (levelData && levelData.enemyTypes) {
+                let enemyX = cardX + 130;
+                const enemyY = cardY + 125;
+                
+                levelData.enemyTypes.forEach(enemyId => {
+                    const enemyData = EnemyPresets[enemyId];
+                    if (enemyData) {
+                        // 敌机标签背景
+                        ctx.fillStyle = enemyData.color;
+                        const tagText = enemyData.name;
+                        ctx.font = 'bold 13px Arial';
+                        const tagWidth = ctx.measureText(tagText).width + 14;
+                        const tagHeight = 22;
+                        this.roundRect(ctx, enemyX, enemyY - 14, tagWidth, tagHeight, 4);
+                        ctx.fill();
+                        
+                        // 敌机标签文字
+                        ctx.fillStyle = '#FFFFFF';
+                        ctx.textAlign = 'left';
+                        ctx.fillText(tagText, enemyX + 7, enemyY);
+                        
+                        enemyX += tagWidth + 6;
+                    }
+                });
+            }
+            
+            // 掉落资源
+            const resourceInfo = this.formatLevelResources(level);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 16px Arial';
+            ctx.textAlign = 'left';
+            ctx.fillText('💎 掉落资源:', cardX + 20, cardY + 155);
+            
+            // 绘制资源标签
+            let resourceX = cardX + 140;
+            const resourceY = cardY + 155;
+            const resourceNames = { iron: '铁', copper: '铜', cobalt: '钴', nickel: '镍', gold: '金' };
+            const resourceColors = { iron: '#B0B0B0', copper: '#CD7F32', cobalt: '#0047AB', nickel: '#C0C0C0', gold: '#FFD700' };
+            
+            resourceInfo.forEach(resource => {
+                const name = resourceNames[resource.type] || resource.type;
+                const displayText = resource.isProbabilistic ? `${name}(概率)` : name;
+                
+                // 资源标签背景
+                ctx.fillStyle = resourceColors[resource.type];
+                const tagWidth = ctx.measureText(displayText).width + 16;
+                const tagHeight = 24;
+                this.roundRect(ctx, resourceX, resourceY - 16, tagWidth, tagHeight, 4);
+                ctx.fill();
+                
+                // 资源标签文字
+                ctx.fillStyle = '#FFFFFF';
+                ctx.font = 'bold 14px Arial';
+                ctx.textAlign = 'left';
+                ctx.fillText(displayText, resourceX + 8, resourceY);
+                
+                resourceX += tagWidth + 8;
+            });
+            
+            // "进入"按钮
+            const buttonWidth = 120;
+            const buttonHeight = 40;
+            const buttonX = cardX + levelCardWidth - buttonWidth - 20;
+            const buttonY = cardY + levelCardHeight - buttonHeight - 15;
+            
+            ctx.fillStyle = '#4CAF50';
+            ctx.strokeStyle = '#FFFFFF';
+            ctx.lineWidth = 2;
+            this.roundRect(ctx, buttonX, buttonY, buttonWidth, buttonHeight, 8);
+            ctx.fill();
+            ctx.stroke();
+            
+            ctx.fillStyle = '#FFFFFF';
+            ctx.font = 'bold 20px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('进入 ▶', buttonX + buttonWidth / 2, buttonY + buttonHeight / 2);
+        }
+    }
+    
+    // 格式化关卡资源信息
+    formatLevelResources(level) {
+        const resources = [];
+        const fixedTypes = new Set();
+        
+        // 收集固定掉落的资源类型
+        for (const [type, amount] of Object.entries(level.fixedRewards)) {
+            if (amount > 0) {
+                fixedTypes.add(type);
+                resources.push({ type, isProbabilistic: false });
+            }
+        }
+        
+        // 收集概率掉落的资源类型（不在固定掉落中）
+        const levelData = LevelPresets[level.id];
+        if (levelData && levelData.dropTable) {
+            levelData.dropTable.forEach(drop => {
+                if (!fixedTypes.has(drop.resourceType)) {
+                    // 只添加一次
+                    if (!resources.find(r => r.type === drop.resourceType)) {
+                        resources.push({ type: drop.resourceType, isProbabilistic: true });
+                    }
+                }
+            });
+        }
+        
+        return resources;
+    }
+    
+    // 绘制滚动条
+    drawLevelSelectionScrollbar(ctx, panelX, panelWidth, contentStartY, scrollAreaHeight) {
+        const maxScroll = this.calculateLevelSelectionMaxScroll();
+        if (maxScroll <= 0) return;
+        
+        const scrollbarWidth = 8;
+        const scrollbarX = panelX + panelWidth - 25;
+        const totalContentHeight = scrollAreaHeight + maxScroll;
+        const scrollbarHeight = Math.max(30, (scrollAreaHeight / totalContentHeight) * scrollAreaHeight);
+        const scrollbarY = contentStartY + (this.levelSelectionData.scrollOffset / maxScroll) * (scrollAreaHeight - scrollbarHeight);
+        
+        // 滚动条轨道
+        ctx.fillStyle = 'rgba(100, 100, 100, 0.3)';
+        this.roundRect(ctx, scrollbarX, contentStartY, scrollbarWidth, scrollAreaHeight, 4);
+        ctx.fill();
+        
+        // 滚动条滑块
+        ctx.fillStyle = 'rgba(76, 175, 80, 0.8)';
+        this.roundRect(ctx, scrollbarX, scrollbarY, scrollbarWidth, scrollbarHeight, 4);
+        ctx.fill();
+    }
+    
     // 激活大厅
     activate() {
         this.isActive = true;
-        this.showingHelp = false;
         this.showingWeaponConfig = false;
         this.showingTechUpgrade = false;
+        this.showingLevelSelection = false;
         this.canvas.addEventListener('mousemove', this.boundMouseMove);
         this.canvas.addEventListener('click', this.boundMouseClick);
         this.canvas.addEventListener('wheel', this.boundMouseWheel);

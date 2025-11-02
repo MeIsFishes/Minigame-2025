@@ -78,6 +78,36 @@ class EnemyHealthBar {
         ctx.fillStyle = this.cachedHealthColor;
         ctx.fillRect(barX, barY, barWidth * this.cachedHealthRatio, this.barHeight);
         
+        // 护盾条（如果有护盾）
+        if (this.enemy.maxShield > 0) {
+            const shieldRatio = Math.max(0, Math.min(1, this.enemy.shield / this.enemy.maxShield));
+            const shieldBarY = barY - this.barHeight - 2; // 护盾条在血条上方
+            
+            // 护盾背景（深灰色）
+            ctx.fillStyle = 'rgba(30, 30, 40, 0.8)';
+            ctx.fillRect(barX, shieldBarY, barWidth, this.barHeight);
+            
+            // 护盾值（渐变蓝色）
+            if (shieldRatio > 0) {
+                const gradient = ctx.createLinearGradient(barX, shieldBarY, barX + barWidth * shieldRatio, shieldBarY);
+                gradient.addColorStop(0, 'rgba(0, 180, 255, 0.9)');
+                gradient.addColorStop(1, 'rgba(0, 120, 220, 0.9)');
+                ctx.fillStyle = gradient;
+                ctx.fillRect(barX, shieldBarY, barWidth * shieldRatio, this.barHeight);
+                
+                // 护盾发光效果
+                ctx.shadowColor = 'rgba(0, 180, 255, 0.5)';
+                ctx.shadowBlur = 3;
+                ctx.fillRect(barX, shieldBarY, barWidth * shieldRatio, this.barHeight);
+                ctx.shadowBlur = 0;
+            }
+            
+            // 护盾边框（亮蓝色）
+            ctx.strokeStyle = 'rgba(120, 220, 255, 0.95)';
+            ctx.lineWidth = 1;
+            ctx.strokeRect(barX, shieldBarY, barWidth, this.barHeight);
+        }
+        
         ctx.restore();
     }
     

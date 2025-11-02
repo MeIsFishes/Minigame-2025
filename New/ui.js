@@ -1,9 +1,10 @@
 // ui.js - UI系统：处理游戏内UI和键盘冷却显示
 
 class UISystem {
-    constructor(weaponSystem, player = null) {
+    constructor(weaponSystem, player = null, levelSystem = null) {
         this.weaponSystem = weaponSystem;
         this.player = player;
+        this.levelSystem = levelSystem;
         this.keyboardUIContainer = document.getElementById('keyboard-ui');
         this.scoreDisplay = document.getElementById('score');
         this.keyButtons = {};
@@ -11,7 +12,15 @@ class UISystem {
         // 创建血量显示
         this.createHealthDisplay();
         
+        // 创建关卡倒计时显示
+        this.createLevelTimerDisplay();
+        
         this.initializeKeyboardUI();
+    }
+    
+    // 设置关卡系统引用
+    setLevelSystem(levelSystem) {
+        this.levelSystem = levelSystem;
     }
     
     // 创建血量显示
@@ -45,6 +54,35 @@ class UISystem {
         }
     }
     
+    // 创建关卡倒计时显示
+    createLevelTimerDisplay() {
+        // 检查是否已存在倒计时显示
+        let timerDisplay = document.getElementById('level-timer-display');
+        if (!timerDisplay) {
+            timerDisplay = document.createElement('div');
+            timerDisplay.id = 'level-timer-display';
+            timerDisplay.style.position = 'fixed';
+            timerDisplay.style.top = '15px';
+            timerDisplay.style.left = '50%';
+            timerDisplay.style.transform = 'translateX(-50%)';
+            timerDisplay.style.fontSize = '32px';
+            timerDisplay.style.fontWeight = 'bold';
+            timerDisplay.style.color = '#FFFFFF';
+            timerDisplay.style.textShadow = '3px 3px 6px rgba(0,0,0,0.8)';
+            timerDisplay.style.zIndex = '1000';
+            timerDisplay.style.userSelect = 'none';
+            timerDisplay.style.display = 'none'; // 默认隐藏
+            timerDisplay.style.padding = '10px 30px';
+            timerDisplay.style.background = 'linear-gradient(135deg, rgba(0, 150, 255, 0.3), rgba(0, 100, 200, 0.3))';
+            timerDisplay.style.borderRadius = '25px';
+            timerDisplay.style.border = '2px solid rgba(255, 255, 255, 0.3)';
+            timerDisplay.style.backdropFilter = 'blur(10px)';
+            document.body.appendChild(timerDisplay);
+        }
+        
+        this.timerDisplay = timerDisplay;
+    }
+    
     // 显示血量UI
     show() {
         if (this.healthDisplay) {
@@ -60,12 +98,22 @@ class UISystem {
             // 立即更新一次显示
             this.updateHealthDisplay();
         }
+        
+        // 显示倒计时
+        if (this.timerDisplay) {
+            this.timerDisplay.style.display = 'block';
+        }
     }
     
     // 隐藏血量UI
     hide() {
         if (this.healthDisplay) {
             this.healthDisplay.style.display = 'none';
+        }
+        
+        // 隐藏倒计时
+        if (this.timerDisplay) {
+            this.timerDisplay.style.display = 'none';
         }
     }
     
@@ -211,6 +259,49 @@ class UISystem {
                 overlay.style.height = `${percentage}%`;
             }
         });
+        
+        // 更新关卡倒计时
+        this.updateLevelTimer();
+    }
+    
+    // 更新关卡倒计时显示
+    updateLevelTimer() {
+        if (!this.timerDisplay || !this.levelSystem) return;
+        
+        const levelInfo = this.levelSystem.getCurrentLevelInfo();
+        if (!levelInfo || !levelInfo.isActive) {
+            this.timerDisplay.style.display = 'none';
+            return;
+        }
+        
+        this.timerDisplay.style.display = 'block';
+        
+        const remainingTime = levelInfo.remainingTime;
+        if (remainingTime === Infinity) {
+            // 无尽模式
+            this.timerDisplay.textContent = '∞ 无尽模式';
+            this.timerDisplay.style.color = '#FFD700';
+        } else {
+            // 转换为分:秒格式
+            const totalSeconds = Math.ceil(remainingTime / 1000);
+            const minutes = Math.floor(totalSeconds / 60);
+            const seconds = totalSeconds % 60;
+            const timeString = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+            
+            this.timerDisplay.textContent = `⏱️ ${timeString}`;
+            
+            // 根据剩余时间改变颜色
+            if (totalSeconds <= 10) {
+                this.timerDisplay.style.color = '#FF4444';
+                this.timerDisplay.style.animation = 'pulse 0.5s infinite';
+            } else if (totalSeconds <= 30) {
+                this.timerDisplay.style.color = '#FF8800';
+                this.timerDisplay.style.animation = 'none';
+            } else {
+                this.timerDisplay.style.color = '#FFFFFF';
+                this.timerDisplay.style.animation = 'none';
+            }
+        }
     }
     
     // 更新按钮颜色

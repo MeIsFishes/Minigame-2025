@@ -98,6 +98,12 @@ class SpriteRenderer {
             case 'boss':
                 this.drawBossEnemy(ctx, x, y, width, height, color);
                 break;
+            case 'armored':
+                this.drawArmoredEnemy(ctx, x, y, width, height, color);
+                break;
+            case 'heavy_armored':
+                this.drawHeavyArmoredEnemy(ctx, x, y, width, height, color);
+                break;
             default:
                 this.drawBasicEnemy(ctx, x, y, width, height, color);
         }
@@ -629,6 +635,201 @@ class SpriteRenderer {
         
         // 清除阴影
         ctx.shadowBlur = 0;
+    }
+    
+    // 绘制铁甲舰（装甲厚重，银色调）
+    drawArmoredEnemy(ctx, x, y, w, h, color) {
+        ctx.shadowColor = '#E0E0E0';
+        ctx.shadowBlur = 15;
+        
+        // 主装甲机身（银色金属质感）
+        const gradient = ctx.createLinearGradient(x, y, x, y + h);
+        gradient.addColorStop(0, '#E8E8E8');
+        gradient.addColorStop(0.5, color);
+        gradient.addColorStop(1, '#A0A0A0');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x + w * 0.2, y + h * 0.3, w * 0.5, h * 0.4);
+        
+        // 前方装甲尖端（倾斜装甲）
+        ctx.fillStyle = this.lightenColor(color, 1.3);
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.7, y + h * 0.35);
+        ctx.lineTo(x + w * 0.85, y + h * 0.5);
+        ctx.lineTo(x + w * 0.7, y + h * 0.65);
+        ctx.lineTo(x + w * 0.7, y + h * 0.35);
+        ctx.closePath();
+        ctx.fill();
+        
+        // 装甲板纹理线条（增加金属质感）
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        ctx.lineWidth = 1.5;
+        for (let i = 0; i < 4; i++) {
+            const offsetX = x + w * (0.25 + i * 0.12);
+            ctx.beginPath();
+            ctx.moveTo(offsetX, y + h * 0.3);
+            ctx.lineTo(offsetX, y + h * 0.7);
+            ctx.stroke();
+        }
+        
+        // 上装甲护板（厚重感）
+        ctx.fillStyle = this.darkenColor(color, 0.8);
+        ctx.fillRect(x + w * 0.25, y + h * 0.2, w * 0.4, h * 0.1);
+        
+        // 下装甲护板
+        ctx.fillRect(x + w * 0.25, y + h * 0.7, w * 0.4, h * 0.1);
+        
+        // 铆钉细节（装甲板连接点）
+        ctx.fillStyle = '#707070';
+        for (let i = 0; i < 5; i++) {
+            const rivetX = x + w * (0.28 + i * 0.1);
+            ctx.beginPath();
+            ctx.arc(rivetX, y + h * 0.25, w * 0.015, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.beginPath();
+            ctx.arc(rivetX, y + h * 0.75, w * 0.015, 0, Math.PI * 2);
+            ctx.fill();
+        }
+        
+        // 观察窗（小型蓝色玻璃）
+        ctx.fillStyle = '#4A90E2';
+        ctx.shadowBlur = 8;
+        ctx.shadowColor = '#2E5C8A';
+        ctx.beginPath();
+        ctx.arc(x + w * 0.5, y + h * 0.5, w * 0.08, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 引擎光效（橙色）
+        ctx.fillStyle = '#FF8C00';
+        ctx.shadowBlur = 12;
+        ctx.shadowColor = '#FFA500';
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.1, y + h * 0.5, w * 0.06, h * 0.12, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 装甲边缘高光
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.7, y + h * 0.35);
+        ctx.lineTo(x + w * 0.85, y + h * 0.5);
+        ctx.lineTo(x + w * 0.7, y + h * 0.65);
+        ctx.stroke();
+    }
+    
+    // 绘制重型铁甲舰（超厚装甲，深银色调）
+    drawHeavyArmoredEnemy(ctx, x, y, w, h, color) {
+        ctx.shadowColor = '#C0C0C0';
+        ctx.shadowBlur = 20;
+        
+        // 超厚主装甲机身
+        const gradient = ctx.createLinearGradient(x, y, x, y + h);
+        gradient.addColorStop(0, '#D0D0D0');
+        gradient.addColorStop(0.5, color);
+        gradient.addColorStop(1, '#808090');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(x + w * 0.15, y + h * 0.25, w * 0.6, h * 0.5);
+        
+        // 前方超厚装甲
+        ctx.fillStyle = this.lightenColor(color, 1.2);
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.75, y + h * 0.3);
+        ctx.lineTo(x + w * 0.92, y + h * 0.5);
+        ctx.lineTo(x + w * 0.75, y + h * 0.7);
+        ctx.lineTo(x + w * 0.75, y + h * 0.3);
+        ctx.closePath();
+        ctx.fill();
+        
+        // 多层装甲板（显示厚度）
+        ctx.fillStyle = this.darkenColor(color, 0.7);
+        ctx.fillRect(x + w * 0.2, y + h * 0.15, w * 0.5, h * 0.1);
+        ctx.fillRect(x + w * 0.2, y + h * 0.75, w * 0.5, h * 0.1);
+        
+        // 额外装甲层
+        ctx.fillStyle = this.darkenColor(color, 0.6);
+        ctx.fillRect(x + w * 0.22, y + h * 0.1, w * 0.46, h * 0.05);
+        ctx.fillRect(x + w * 0.22, y + h * 0.85, w * 0.46, h * 0.05);
+        
+        // 装甲纹理线条（更密集）
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < 6; i++) {
+            const offsetX = x + w * (0.2 + i * 0.1);
+            ctx.beginPath();
+            ctx.moveTo(offsetX, y + h * 0.25);
+            ctx.lineTo(offsetX, y + h * 0.75);
+            ctx.stroke();
+        }
+        
+        // 大型铆钉（更明显的装甲连接）
+        ctx.fillStyle = '#606060';
+        for (let row = 0; row < 2; row++) {
+            for (let i = 0; i < 6; i++) {
+                const rivetX = x + w * (0.25 + i * 0.09);
+                const rivetY = y + h * (0.35 + row * 0.3);
+                ctx.beginPath();
+                ctx.arc(rivetX, rivetY, w * 0.02, 0, Math.PI * 2);
+                ctx.fill();
+                // 铆钉高光
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
+                ctx.beginPath();
+                ctx.arc(rivetX - w * 0.005, rivetY - w * 0.005, w * 0.01, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#606060';
+            }
+        }
+        
+        // 观察窗（加固型）
+        ctx.fillStyle = '#3A7BC8';
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = '#1E3C72';
+        ctx.beginPath();
+        ctx.arc(x + w * 0.55, y + h * 0.5, w * 0.09, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 观察窗框架
+        ctx.strokeStyle = '#505050';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(x + w * 0.55, y + h * 0.5, w * 0.1, 0, Math.PI * 2);
+        ctx.stroke();
+        
+        // 双引擎光效
+        ctx.fillStyle = '#FF6B00';
+        ctx.shadowBlur = 15;
+        ctx.shadowColor = '#FF8C00';
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.08, y + h * 0.38, w * 0.07, h * 0.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(x + w * 0.08, y + h * 0.62, w * 0.07, h * 0.1, 0, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 装甲边缘强化高光
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.75, y + h * 0.3);
+        ctx.lineTo(x + w * 0.92, y + h * 0.5);
+        ctx.lineTo(x + w * 0.75, y + h * 0.7);
+        ctx.stroke();
+        
+        // 侧面装甲板
+        ctx.fillStyle = this.darkenColor(color, 0.75);
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.3, y + h * 0.15);
+        ctx.lineTo(x + w * 0.5, y + h * 0.05);
+        ctx.lineTo(x + w * 0.65, y + h * 0.15);
+        ctx.lineTo(x + w * 0.45, y + h * 0.25);
+        ctx.closePath();
+        ctx.fill();
+        
+        ctx.beginPath();
+        ctx.moveTo(x + w * 0.3, y + h * 0.85);
+        ctx.lineTo(x + w * 0.5, y + h * 0.95);
+        ctx.lineTo(x + w * 0.65, y + h * 0.85);
+        ctx.lineTo(x + w * 0.45, y + h * 0.75);
+        ctx.closePath();
+        ctx.fill();
     }
 }
 

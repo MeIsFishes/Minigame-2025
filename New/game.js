@@ -15,6 +15,9 @@ class Game {
         // 初始化科技系统
         this.techSystem = new TechSystem(this.player);
         
+        // 初始化关卡系统
+        this.levelSystem = new LevelSystem(this.player);
+        
         // 初始化特效系统（先初始化，因为其他系统可能需要它）
         this.effectSystem = new EffectSystem(this.canvas);
         
@@ -22,7 +25,8 @@ class Game {
         this.weaponSystem = new WeaponSystem(this.canvas, this.player, this.effectSystem);
         this.weaponSystem.setTechSystem(this.techSystem); // 设置科技系统引用
         this.enemySystem = new EnemySystem(this.canvas, this.player); // 传入player引用用于扣血
-        this.uiSystem = new UISystem(this.weaponSystem, this.player); // 传入player引用用于显示血量
+        this.enemySystem.setLevelSystem(this.levelSystem); // 设置关卡系统引用
+        this.uiSystem = new UISystem(this.weaponSystem, this.player, this.levelSystem); // 传入player和levelSystem引用
         this.menuSystem = new MenuSystem();
         this.lobbySystem = new LobbySystem(this.canvas);
         
@@ -77,14 +81,9 @@ class Game {
     
     // 设置大厅回调
     setupLobbyCallbacks() {
-        this.lobbySystem.onStartGame = () => {
+        this.lobbySystem.onStartGame = (levelId) => {
             this.hideLobby();
-            this.startGame();
-        };
-        
-        this.lobbySystem.onSettings = () => {
-            console.log('打开设置（未实现）');
-            // 可以在这里实现设置界面
+            this.startGame(levelId);
         };
     }
     
@@ -189,7 +188,7 @@ class Game {
     }
     
     // 开始游戏
-    startGame() {
+    startGame(levelId = 'LEVEL_1') {
         // 重置玩家
         this.player.reset();
         
@@ -214,6 +213,10 @@ class Game {
         this.enemySystem.reset();
         this.effectSystem.reset();
         this.uiSystem.reset();
+        this.levelSystem.reset();
+        
+        // 启动指定关卡（如果未指定则使用默认关卡）
+        this.levelSystem.startLevel(levelId);
         
         // 显示血量UI
         this.uiSystem.show();
@@ -246,6 +249,9 @@ class Game {
     
     // 更新游戏逻辑
     update(deltaTime, currentTime) {
+        // 更新关卡系统
+        this.levelSystem.update();
+        
         // 更新武器系统
         this.weaponSystem.update(deltaTime, currentTime);
         
@@ -277,9 +283,15 @@ class Game {
         this.uiSystem.update(currentTime);
         this.uiSystem.updateScore(this.player.score);
         
+        // 检查关卡是否完成
+        if (this.levelSystem.levelCompleted) {
+            this.endGame(true); // 关卡完成
+        }
+        
         // 检查游戏结束（玩家血量为0）
         if (!this.player.isAlive()) {
-            this.endGame();
+            this.levelSystem.failLevel(); // 关卡失败
+            this.endGame(false); // 玩家死亡
         }
     }
     
@@ -333,7 +345,7 @@ class Game {
     }
     
     // 结束游戏
-    endGame() {
+    endGame(levelCompleted = false) {
         this.isRunning = false;
         
         if (this.animationFrameId) {
@@ -343,11 +355,30 @@ class Game {
         // 隐藏血量UI
         this.uiSystem.hide();
         
+        // 保存最终得分和奖励信息
+        const finalScore = this.player.score;
+        let rewards = null;
+        
+        // 如果关卡完成，获取奖励信息
+        if (levelCompleted) {
+            const levelInfo = this.levelSystem.getCurrentLevelInfo();
+            console.log(`恭喜！关卡完成：${levelInfo.name}`);
+            console.log(`最终得分：${finalScore}`);
+            
+            // 获取已经发放的奖励信息（completeLevel 已经在 update 中被自动调用）
+            rewards = this.levelSystem.getLastRewards();
+            
+            console.log('获得奖励:', rewards);
+        } else {
+            console.log(`游戏失败，最终得分：${finalScore}`);
+            console.log('失败不会获得奖励');
+        }
+        
         // 重置所有游戏系统
         this.resetGameSystems();
         
-        // 显示游戏结束画面，使用玩家的最终分数
-        this.menuSystem.showGameOver(this.player.score);
+        // 显示游戏结束画面，使用玩家的最终分数和奖励信息
+        this.menuSystem.showGameOver(finalScore, levelCompleted, rewards);
         
         this.playGameOverSound();
     }

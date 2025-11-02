@@ -3,6 +3,7 @@
 // 敌机数据结构定义
 class EnemyData {
     constructor(config) {
+        this.id = config.id || 'UNKNOWN'; // 唯一标识符
         this.name = config.name || '默认敌机';
         this.health = config.health || 1; // 血量
         this.model = config.model || 'basic'; // 模型类型
@@ -17,12 +18,19 @@ class EnemyData {
         this.height = config.height || 30; // 敌机高度
         this.color = config.color || '#FF4444'; // 主要颜色
         this.score = config.score || 10; // 击杀得分
+        
+        // 护盾系统
+        this.damageBlock = config.damageBlock || 0; // 伤害格挡（每次受到伤害时减少的伤害量）
+        this.shield = config.shield || 0; // 护盾量
+        this.shieldRegenDelay = config.shieldRegenDelay || 3000; // 护盾恢复延迟（毫秒）
+        this.shieldRegenRate = config.shieldRegenRate || 0; // 护盾恢复速度（点/秒）
     }
 }
 
 // 预设敌机库
 const EnemyPresets = {
     BASIC: new EnemyData({
+        id: 'BASIC',
         name: '基础战机',
         health: 15,
         model: 'basic',
@@ -40,6 +48,7 @@ const EnemyPresets = {
     }),
     
     HEAVY: new EnemyData({
+        id: 'HEAVY',
         name: '重型战机',
         health: 70,
         model: 'heavy',
@@ -53,10 +62,11 @@ const EnemyPresets = {
         width: 160,
         height: 120,
         color: '#CC0000',
-        score: 30
+        score: 30,
     }),
     
     FAST: new EnemyData({
+        id: 'FAST',
         name: '快速战机',
         health: 10,
         model: 'fast',
@@ -74,6 +84,7 @@ const EnemyPresets = {
     }),
     
     BOSS: new EnemyData({
+        id: 'BOSS',
         name: 'BOSS战机',
         health: 140,
         model: 'boss',
@@ -87,10 +98,11 @@ const EnemyPresets = {
         width: 300,
         height: 225,
         color: '#8800FF',
-        score: 100
+        score: 100,
     }),
     
     LIGHT_MEDIC: new EnemyData({
+        id: 'LIGHT_MEDIC',
         name: '轻型医疗机',
         health: 20,
         model: 'basic',
@@ -108,6 +120,7 @@ const EnemyPresets = {
     }),
     
     HEAVY_MEDIC: new EnemyData({
+        id: 'HEAVY_MEDIC',
         name: '重型医疗机',
         health: 50,
         model: 'heavy',
@@ -122,6 +135,50 @@ const EnemyPresets = {
         height: 110,
         color: '#00DD66',
         score: 40
+    }),
+    
+    ARMORED: new EnemyData({
+        id: 'ARMORED',
+        name: '铁甲舰',
+        health: 30,
+        model: 'armored',
+        spawnWeight: 20,
+        minSpeed: 70,
+        maxSpeed: 100,
+        minSpawnHeight: 0.2,
+        maxSpawnHeight: 1.0,
+        killHeal: 0,
+        damage: 1,
+        width: 120,
+        height: 90,
+        color: '#C0C0C0', // 银色
+        score: 25,
+        damageBlock: 5, // 铁甲提供5点伤害格挡
+        shield: 0,
+        shieldRegenDelay: 0,
+        shieldRegenRate: 0
+    }),
+    
+    HEAVY_ARMORED: new EnemyData({
+        id: 'HEAVY_ARMORED',
+        name: '重型铁甲舰',
+        health: 80,
+        model: 'heavy_armored',
+        spawnWeight: 5,
+        minSpeed: 40,
+        maxSpeed: 60,
+        minSpawnHeight: 0.1,
+        maxSpawnHeight: 0.6,
+        killHeal: 0,
+        damage: 2,
+        width: 180,
+        height: 135,
+        color: '#A0A0B0', // 深银色
+        score: 50,
+        damageBlock: 15, // 重型铁甲提供15点伤害格挡
+        shield: 0,
+        shieldRegenDelay: 0,
+        shieldRegenRate: 0
     })
 };
 
@@ -130,7 +187,8 @@ class EnemySystem {
         this.canvas = canvas;
         this.enemies = []; // 敌机列表
         this.player = player; // 玩家引用（用于回血）
-        this.SPAWN_INTERVAL = 2000; // 2秒生成一个敌机
+        this.levelSystem = null; // 关卡系统引用
+        this.SPAWN_INTERVAL = 2000; // 2秒生成一个敌机（默认值）
         this.lastSpawn = 0;
         this.score = 0;
         this.nextEnemyId = 0; // 用于生成唯一ID
@@ -142,7 +200,9 @@ class EnemySystem {
             EnemyPresets.FAST,
             EnemyPresets.BOSS,
             EnemyPresets.LIGHT_MEDIC,
-            EnemyPresets.HEAVY_MEDIC
+            EnemyPresets.HEAVY_MEDIC,
+            EnemyPresets.ARMORED,
+            EnemyPresets.HEAVY_ARMORED
         ];
         
         // 计算总权重
@@ -154,27 +214,58 @@ class EnemySystem {
         this.player = player;
     }
     
+    // 设置关卡系统引用
+    setLevelSystem(levelSystem) {
+        this.levelSystem = levelSystem;
+    }
+    
     // 根据权重随机选择敌机类型
     selectEnemyType() {
-        const rand = Math.random() * this.totalWeight;
+        // 如果有关卡系统，过滤出允许的敌机类型
+        let availableTypes = this.enemyTypes;
+        if (this.levelSystem && this.levelSystem.currentLevel) {
+            availableTypes = this.enemyTypes.filter(type => 
+                this.levelSystem.isEnemyTypeAllowed(type.id)
+            );
+        }
+        
+        // 如果没有可用类型，返回基础战机
+        if (availableTypes.length === 0) {
+            return EnemyPresets.BASIC;
+        }
+        
+        // 计算可用类型的总权重
+        const totalWeight = availableTypes.reduce((sum, type) => sum + type.spawnWeight, 0);
+        
+        const rand = Math.random() * totalWeight;
         let weightSum = 0;
         
-        for (const type of this.enemyTypes) {
+        for (const type of availableTypes) {
             weightSum += type.spawnWeight;
             if (rand <= weightSum) {
                 return type;
             }
         }
         
-        // 默认返回基础战机
-        return EnemyPresets.BASIC;
+        // 默认返回第一个可用类型
+        return availableTypes[0];
     }
     
     // 生成敌机
     spawnEnemy(currentTime) {
-        if (currentTime - this.lastSpawn >= this.SPAWN_INTERVAL) {
+        // 使用关卡系统的生成间隔（如果有）
+        const spawnInterval = this.levelSystem ? 
+            this.levelSystem.getCurrentSpawnInterval() : 
+            this.SPAWN_INTERVAL;
+        
+        if (currentTime - this.lastSpawn >= spawnInterval) {
             // 选择敌机类型
             const enemyType = this.selectEnemyType();
+            
+            // 记录生成到关卡系统
+            if (this.levelSystem) {
+                this.levelSystem.recordSpawn();
+            }
             
             // 计算战斗区域高度（canvas高度的75%）
             const battleAreaHeight = this.canvas.height * 0.75;
@@ -218,9 +309,42 @@ class EnemySystem {
                 cachedHealthRatio: 1.0, // 缓存的血量比例
                 cachedHealthColor: '#00FF00', // 缓存的血条颜色
                 
+                // 护盾系统
+                maxShield: enemyType.shield,
+                shield: enemyType.shield,
+                lastDamageTime: 0, // 上次受到伤害的时间
+                shieldRegenDelay: enemyType.shieldRegenDelay,
+                shieldRegenRate: enemyType.shieldRegenRate,
+                damageBlock: enemyType.damageBlock,
+                
                 // 敌机受伤方法
-                takeDamage: function(damage, callback) {
-                    this.health -= damage;
+                takeDamage: function(damage, callback, currentTime = Date.now()) {
+                    // 记录受伤时间（用于护盾恢复延迟）
+                    this.lastDamageTime = currentTime;
+                    
+                    // 应用伤害格挡，但至少造成1点伤害
+                    let actualDamage = Math.max(1, damage - this.damageBlock);
+                    
+                    // 播放音效：如果有伤害格挡，播放装甲格挡音效
+                    if (this.damageBlock > 0 && typeof audioSystem !== 'undefined') {
+                        audioSystem.playArmorBlockSound();
+                    }
+                    
+                    // 护盾存在时，完全吸收伤害（不会掉血）
+                    if (this.shield > 0) {
+                        // 护盾减少伤害值（可能超过护盾当前值，导致护盾清零）
+                        this.shield -= actualDamage;
+                        // 护盾不能为负数
+                        if (this.shield < 0) {
+                            this.shield = 0;
+                        }
+                        // 护盾存在时，生命值不受损
+                        actualDamage = 0;
+                    } else {
+                        // 没有护盾，直接扣血
+                        this.health -= actualDamage;
+                    }
+                    
                     this.healthBarDirty = true;
                     
                     // 更新缓存的血条数据
@@ -281,6 +405,8 @@ class EnemySystem {
     
     // 更新所有敌机
     update(deltaTime) {
+        const currentTime = Date.now();
+        
         // 使用filter清理死亡或超出屏幕的敌机
         this.enemies = this.enemies.filter(enemy => {
             // 检查敌机是否存活
@@ -290,6 +416,17 @@ class EnemySystem {
             
             // 横向移动
             enemy.x += enemy.horizontalSpeed * enemy.direction;
+            
+            // 护盾恢复逻辑
+            if (enemy.maxShield > 0 && enemy.shield < enemy.maxShield && enemy.shieldRegenRate > 0) {
+                // 检查是否超过恢复延迟
+                const timeSinceLastDamage = currentTime - enemy.lastDamageTime;
+                if (timeSinceLastDamage >= enemy.shieldRegenDelay) {
+                    // 恢复护盾（按帧率计算，假设60fps）
+                    const regenAmount = (enemy.shieldRegenRate / 60) * (deltaTime / 16.67);
+                    enemy.shield = Math.min(enemy.maxShield, enemy.shield + regenAmount);
+                }
+            }
             
             // 检查敌机是否飞出屏幕
             const hasEscaped = (enemy.direction > 0 && enemy.x > this.canvas.width) || 
@@ -329,6 +466,8 @@ class EnemySystem {
     
     // 检测与子弹的碰撞
     checkCollisions(bullets, weaponSystem, effectSystem = null) {
+        const currentTime = Date.now();
+        
         bullets.forEach(bullet => {
             // 如果子弹已经用完穿透次数，跳过
             if (bullet.remainingPenetration <= 0) {
@@ -389,7 +528,7 @@ class EnemySystem {
                                 { color: bullet.color || '#FFFF00', particleCount: 5, duration: 300 }
                             );
                         }
-                    });
+                    }, currentTime);
                     
                     // 检查是否有爆炸范围
                     if (bullet.explosionRadius > 0 && effectSystem) {
@@ -413,7 +552,7 @@ class EnemySystem {
                             
                             // 在爆炸范围内
                             if (distance <= bullet.explosionRadius) {
-                                const explosionDead = otherEnemy.takeDamage(bullet.damage);
+                                const explosionDead = otherEnemy.takeDamage(bullet.damage, null, currentTime);
                                 
                                 // 如果爆炸导致敌机死亡
                                 if (explosionDead) {
@@ -571,6 +710,7 @@ class EnemySystem {
     handleBulletExplosion(bullet, explosionX, explosionY) {
         if (!bullet.explosionRadius || bullet.explosionRadius <= 0) return;
         
+        const currentTime = Date.now();
         const effectSystem = window.game ? window.game.effectSystem : null;
         
         // 对爆炸范围内的所有敌机造成伤害
@@ -586,7 +726,7 @@ class EnemySystem {
             
             // 在爆炸范围内
             if (distance <= bullet.explosionRadius) {
-                const explosionDead = enemy.takeDamage(bullet.damage);
+                const explosionDead = enemy.takeDamage(bullet.damage, null, currentTime);
                 
                 // 如果爆炸导致敌机死亡
                 if (explosionDead) {
